@@ -1,3 +1,4 @@
+```text
 ---
 title: "NTDF Tokens: NanoTDF-based Authentication Tokens"
 abbrev: "NTDF Tokens"
@@ -38,7 +39,7 @@ informative:
 This specification defines NTDF (NanoTDF) tokens, a cryptographically-bound authentication token format based on OpenTDF's NanoTDF specification. NTDF tokens replace traditional JWT Bearer tokens with a format that provides policy binding, provenance tracking, optional payload confidentiality, and integration with DPoP (Demonstrating Proof-of-Possession) per RFC 9449.
 
 --- middle
-
+```
 # Introduction
 
 Traditional JWT Bearer tokens suffer from several security limitations:
