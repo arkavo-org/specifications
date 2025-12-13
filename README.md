@@ -20,3 +20,18 @@ Wire format: `Authorization: NTDF <Z85-encoded-nanotdf>`
 **Latest Draft**: [draft-arkavo-ntdf-token-00](ntdf-token/draft-arkavo-ntdf-token-00.md)
 
 **Reference Implementation**: [arkavo-rs](https://github.com/arkavo-org/arkavo-rs)
+
+### torg-decision/
+
+**TØR-G: Token-Only Reasoner (Graph) Intermediate Representation**
+
+TØR-G is a zero-parser, boolean-circuit Intermediate Representation designed for AI agent policy synthesis. It treats LLM output as a direct stream of graph construction instructions, providing:
+
+- **No Text**: The language consists solely of atomic tokens
+- **No Parsing**: The "compiler" is a deterministic state machine
+- **Strict Booleanism**: All logic reduced to boolean decision combinatorics
+- **Verifiability**: Every generated program is a finite DAG amenable to SAT/BDD verification
+
+Wire format: Direct token stream with logit masking enforcement
+
+**Latest Draft**: [draft-arkavo-torg-decision-00](torg-decision/draft-arkavo-torg-decision-00.md)

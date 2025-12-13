@@ -18,7 +18,7 @@ keyword:
 author:
  - fullname: Arkavo Contributors
    organization: Arkavo
-   email: specifications@arkavo.org
+   email: info@arkavo.com
 
 normative:
   RFC2119:
