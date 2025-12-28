@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/events.schema.json",
+  "title": "Event Notifications",
+  "description": "Schema for event broadcast notifications in shared sessions",
+  "type": "object",
+  "definitions": {
+    "notification": {
+      "type": "object",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "method": {
+          "const": "notifications/event"
+        },
+        "params": {
+          "$ref": "#/definitions/event_params"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "event_params": {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "$ref": "#/definitions/event_type"
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Simulation tick when event occurred"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Event-specific details"
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/AgentType"
+          },
+          "description": "Agent types that should receive this event"
+        }
+      },
+      "required": ["event_type", "tick", "details"]
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "entity_died",
+        "entity_spawned",
+        "quest_completed",
+        "combat_started",
+        "combat_ended",
+        "time_changed",
+        "agent_connected",
+        "agent_disconnected",
+        "narrative_triggered",
+        "item_picked_up",
+        "damage_dealt"
+      ],
+      "description": "Standard broadcast event types"
+    },
+    "entity_died_details": {
+      "type": "object",
+      "properties": {
+        "entity_id": { "type": "string" },
+        "cause": { "type": "string" },
+        "killer": { "type": "string" },
+        "location": { "$ref": "game-rl.schema.json#/$defs/Vec3" }
+      },
+      "required": ["entity_id", "cause"]
+    },
+    "entity_spawned_details": {
+      "type": "object",
+      "properties": {
+        "entity_id": { "type": "string" },
+        "entity_type": { "type": "string" },
+        "location": { "$ref": "game-rl.schema.json#/$defs/Vec3" },
+        "spawned_by": { "type": "string" }
+      },
+      "required": ["entity_id", "entity_type", "location"]
+    },
+    "agent_connected_details": {
+      "type": "object",
+      "properties": {
+        "agent_id": { "$ref": "game-rl.schema.json#/$defs/AgentId" },
+        "agent_type": { "$ref": "game-rl.schema.json#/$defs/AgentType" },
+        "scope": { "$ref": "game-rl.schema.json#/$defs/Scope" },
+        "avatar_id": {
+          "type": "string",
+          "description": "Avatar ID if embodied agent"
+        }
+      },
+      "required": ["agent_id", "agent_type", "scope"]
+    },
+    "agent_disconnected_details": {
+      "type": "object",
+      "properties": {
+        "agent_id": { "$ref": "game-rl.schema.json#/$defs/AgentId" },
+        "reason": {
+          "type": "string",
+          "enum": ["normal", "timeout", "error"]
+        }
+      },
+      "required": ["agent_id", "reason"]
+    }
+  }
+}

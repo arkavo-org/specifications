@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/reset.schema.json",
+  "title": "Reset Episode",
+  "description": "Schema for reset tool request",
+  "type": "object",
+  "definitions": {
+    "request": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Agent requesting reset (optional for global reset)"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "RNG seed for deterministic episodes"
+        },
+        "config": {
+          "$ref": "#/definitions/reset_config"
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["agent", "global"],
+          "default": "global",
+          "description": "Reset this agent only or entire environment"
+        }
+      }
+    },
+    "reset_config": {
+      "type": "object",
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "description": "Named scenario/level to load"
+        },
+        "domain_randomization": {
+          "$ref": "#/definitions/domain_randomization"
+        },
+        "initial_state": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Override default initial state"
+        }
+      }
+    },
+    "domain_randomization": {
+      "type": "object",
+      "properties": {
+        "visual": {
+          "type": "object",
+          "properties": {
+            "lighting_variation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "texture_noise": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "camera_jitter": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "physics": {
+          "type": "object",
+          "properties": {
+            "gravity_multiplier": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "[min, max] range for gravity multiplier"
+            },
+            "friction_variation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "gameplay": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Game-specific randomization parameters"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/game-rl.schema.json",
+  "title": "Game-RL Protocol Schema",
+  "description": "JSON Schema definitions for the Game-RL Protocol draft-00",
+  "version": "1.0.0-draft",
+  "$defs": {
+    "AgentId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_:-]+$",
+      "description": "Unique identifier for an agent (e.g., 'claude:game_master', 'chatgpt:companion')"
+    },
+    "Scope": {
+      "type": "string",
+      "enum": ["embodied", "systemic"],
+      "description": "Agent scope: embodied (in-world with physics body) or systemic (out-of-world controller)"
+    },
+    "ClockMode": {
+      "type": "string",
+      "enum": ["training", "live"],
+      "description": "Clock ownership: training (agent-owned, lockstep) or live (engine-owned, real-time)"
+    },
+    "SessionType": {
+      "type": "string",
+      "enum": ["exclusive", "shared"],
+      "description": "Session topology: exclusive (stdio, single owner) or shared (IPC, multiple agents)"
+    },
+    "AgentType": {
+      "type": "string",
+      "enum": [
+        "EntityBehavior",
+        "ColonyManager",
+        "WorldSimulation",
+        "GameMaster",
+        "DialogueAgent",
+        "CombatDirector"
+      ],
+      "description": "Standard agent archetypes"
+    },
+    "Vec2": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "2D vector [x, y]"
+    },
+    "Vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3,
+      "description": "3D vector [x, y, z]"
+    },
+    "StateHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 hash prefixed with algorithm identifier"
+    }
+  }
+}

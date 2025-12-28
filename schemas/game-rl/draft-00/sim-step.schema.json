@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/sim-step.schema.json",
+  "title": "Simulation Step",
+  "description": "Schema for sim_step tool request and response (observation)",
+  "type": "object",
+  "definitions": {
+    "request": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "action": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "number" },
+              "description": "Continuous action vector"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Discrete action index"
+            },
+            {
+              "$ref": "#/definitions/parameterized_action"
+            }
+          ]
+        },
+        "ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Simulation ticks to advance (training mode) or duration hint (live mode)"
+        },
+        "mode": {
+          "$ref": "game-rl.schema.json#/$defs/ClockMode"
+        }
+      },
+      "required": ["agent_id", "action"]
+    },
+    "parameterized_action": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Action type name"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Action parameters"
+        }
+      },
+      "required": ["type"]
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "step_id": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Global step counter"
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Current simulation tick"
+        },
+        "observation": {
+          "type": "object",
+          "description": "Agent-specific observation (schema from registration)"
+        },
+        "reward": {
+          "type": "number",
+          "description": "Scalar reward signal"
+        },
+        "reward_components": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "description": "Decomposed reward for analysis"
+        },
+        "done": {
+          "type": "boolean",
+          "description": "Episode terminated"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "Episode truncated (time limit)"
+        },
+        "termination_reason": {
+          "type": "string",
+          "enum": ["success", "failure", "timeout", "external"],
+          "description": "Why episode ended (if done=true)"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/event"
+          },
+          "description": "Notable events this step"
+        },
+        "frame_ids": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Vision stream frame references"
+        },
+        "available_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/parameterized_action"
+          },
+          "description": "Valid actions for next step (if action space is dynamic)"
+        },
+        "metrics": {
+          "$ref": "#/definitions/step_metrics"
+        },
+        "state_hash": {
+          "$ref": "game-rl.schema.json#/$defs/StateHash"
+        }
+      },
+      "required": ["agent_id", "step_id", "observation", "reward", "done", "truncated"]
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Event type identifier"
+        },
+        "tick": {
+          "type": "integer",
+          "description": "Tick when event occurred"
+        },
+        "severity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "0=debug, 1=info, 2=warning, 3=critical"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": ["type", "tick"]
+    },
+    "step_metrics": {
+      "type": "object",
+      "properties": {
+        "step_ms": {
+          "type": "number",
+          "description": "Step computation time in milliseconds"
+        },
+        "gpu_ms": {
+          "type": "number",
+          "description": "GPU time in milliseconds"
+        },
+        "frame_dropped": {
+          "type": "boolean",
+          "description": "Whether a vision frame was dropped"
+        }
+      }
+    }
+  }
+}

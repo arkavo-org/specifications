@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/manifest.schema.json",
+  "title": "Game Manifest",
+  "description": "Schema for game://manifest resource describing environment capabilities",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable game name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Game version (semver)"
+    },
+    "game_rl_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Game-RL Protocol version implemented"
+    },
+    "capabilities": {
+      "$ref": "#/definitions/capabilities"
+    },
+    "default_observation_space": {
+      "type": "object",
+      "description": "Base observation schema all agents receive"
+    },
+    "default_action_space": {
+      "type": "object",
+      "description": "Fallback action space"
+    },
+    "reward_components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/reward_component"
+      }
+    },
+    "stream_profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/stream_profile"
+      },
+      "description": "Named vision stream configurations"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/scenario"
+      }
+    },
+    "tick_rate": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Simulation ticks per second"
+    },
+    "max_episode_ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum ticks before episode truncation"
+    },
+    "game_rl_compliance": {
+      "$ref": "#/definitions/compliance"
+    }
+  },
+  "required": ["name", "version", "game_rl_version", "capabilities"],
+  "definitions": {
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "multi_agent": {
+          "type": "boolean",
+          "description": "Supports multiple simultaneous agents"
+        },
+        "max_agents": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum concurrent agents"
+        },
+        "agent_types": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/AgentType"
+          },
+          "description": "Supported agent types"
+        },
+        "clock_modes": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/ClockMode"
+          },
+          "description": "Supported clock modes"
+        },
+        "session_types": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/SessionType"
+          },
+          "description": "Supported session topologies"
+        },
+        "deterministic": {
+          "type": "boolean",
+          "description": "Supports deterministic replay"
+        },
+        "save_replay": {
+          "type": "boolean",
+          "description": "Supports trajectory save/load"
+        },
+        "domain_randomization": {
+          "type": "boolean",
+          "description": "Supports domain randomization"
+        },
+        "headless": {
+          "type": "boolean",
+          "description": "Can run without display"
+        },
+        "variable_timestep": {
+          "type": "boolean",
+          "description": "Supports variable tick counts per step"
+        },
+        "ipc_endpoints": {
+          "type": "object",
+          "properties": {
+            "unix_socket": {
+              "type": "string",
+              "description": "Unix socket path"
+            },
+            "named_pipe": {
+              "type": "string",
+              "description": "Windows named pipe"
+            }
+          }
+        }
+      },
+      "required": ["multi_agent", "max_agents", "agent_types"]
+    },
+    "reward_component": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "range": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["name"]
+    },
+    "stream_profile": {
+      "type": "object",
+      "properties": {
+        "streams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/stream_config"
+          }
+        }
+      },
+      "required": ["streams"]
+    },
+    "stream_config": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["rgb", "depth", "segmentation", "flow"]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera": {
+          "type": "string",
+          "description": "Camera identifier"
+        }
+      },
+      "required": ["name", "width", "height"]
+    },
+    "scenario": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "description": "Conformance level (1=Minimal, 2=Standard, 3=Full)"
+        },
+        "version": {
+          "type": "string",
+          "description": "Protocol version tested against"
+        },
+        "test_results_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to test results"
+        }
+      },
+      "required": ["level", "version"]
+    }
+  }
+}

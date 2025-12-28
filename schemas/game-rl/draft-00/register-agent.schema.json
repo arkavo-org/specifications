@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/register-agent.schema.json",
+  "title": "Register Agent",
+  "description": "Schema for agent registration request and response",
+  "type": "object",
+  "definitions": {
+    "request": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "agent_type": {
+          "$ref": "game-rl.schema.json#/$defs/AgentType"
+        },
+        "scope": {
+          "$ref": "game-rl.schema.json#/$defs/Scope"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "avatar_id": {
+              "type": "string",
+              "description": "Entity ID for embodied agents (REQUIRED for scope=embodied)"
+            },
+            "spawn_point": {
+              "type": "string",
+              "description": "Named spawn location for embodied agents"
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["admin", "narrative", "spawn", "world_modify", "debug"]
+              },
+              "description": "Administrative privileges for systemic agents"
+            },
+            "clock_mode": {
+              "$ref": "game-rl.schema.json#/$defs/ClockMode"
+            },
+            "session_type": {
+              "$ref": "game-rl.schema.json#/$defs/SessionType"
+            },
+            "observation_profile": {
+              "type": "string",
+              "description": "Named observation profile from manifest"
+            },
+            "action_mask": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Allowed action types"
+            },
+            "reward_shaping": {
+              "type": "object",
+              "properties": {
+                "components": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "weights": {
+                  "type": "object",
+                  "additionalProperties": { "type": "number" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["agent_id", "agent_type", "scope"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "scope": { "const": "embodied" } }
+          },
+          "then": {
+            "properties": {
+              "config": {
+                "required": ["avatar_id"]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "response_embodied": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "registered": {
+          "type": "boolean",
+          "const": true
+        },
+        "scope": {
+          "const": "embodied"
+        },
+        "avatar": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "position": { "$ref": "game-rl.schema.json#/$defs/Vec3" },
+            "health": { "type": "number" },
+            "max_health": { "type": "number" }
+          },
+          "required": ["id", "position", "health", "max_health"]
+        },
+        "observation_space": {
+          "$ref": "#/definitions/observation_space"
+        },
+        "action_space": {
+          "$ref": "#/definitions/action_space"
+        }
+      },
+      "required": ["agent_id", "registered", "scope", "avatar", "observation_space", "action_space"]
+    },
+    "response_systemic": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "registered": {
+          "type": "boolean",
+          "const": true
+        },
+        "scope": {
+          "const": "systemic"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "observation_space": {
+          "$ref": "#/definitions/observation_space"
+        },
+        "action_space": {
+          "$ref": "#/definitions/action_space"
+        }
+      },
+      "required": ["agent_id", "registered", "scope", "capabilities", "observation_space", "action_space"]
+    },
+    "observation_space": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["dict", "box", "discrete", "sequence"]
+        },
+        "spaces": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      },
+      "required": ["type"]
+    },
+    "action_space": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["discrete", "continuous", "discrete_parameterized"]
+        },
+        "n": {
+          "type": "integer",
+          "description": "Number of discrete actions"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "params": { "type": "object" }
+            },
+            "required": ["name"]
+          }
+        }
+      },
+      "required": ["type"]
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/game-rl/draft-00/vision-stream.schema.json",
+  "title": "Vision Stream",
+  "description": "Schema for vision stream configuration and descriptors",
+  "type": "object",
+  "definitions": {
+    "configure_request": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId"
+        },
+        "profile": {
+          "type": "string",
+          "description": "Named profile from manifest"
+        },
+        "custom": {
+          "$ref": "#/definitions/custom_config"
+        }
+      },
+      "required": ["agent_id"]
+    },
+    "custom_config": {
+      "type": "object",
+      "properties": {
+        "streams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/stream_request"
+          }
+        }
+      },
+      "required": ["streams"]
+    },
+    "stream_request": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["rgb", "depth", "segmentation", "flow"]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera": {
+          "type": "string",
+          "description": "Camera identifier"
+        }
+      },
+      "required": ["name", "type", "width", "height"]
+    },
+    "stream_descriptor": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pixel_format": {
+          "type": "string",
+          "enum": ["rgba8", "bgra8", "rgb8", "r32f", "rg32f"]
+        },
+        "ring_count": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Number of buffers in ring"
+        },
+        "transport": {
+          "$ref": "#/definitions/transport"
+        },
+        "sync": {
+          "$ref": "#/definitions/sync"
+        }
+      },
+      "required": ["stream_id", "width", "height", "pixel_format", "ring_count", "transport"]
+    },
+    "transport": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "iosurface" },
+            "surface_ids": {
+              "type": "array",
+              "items": { "type": "integer" }
+            }
+          },
+          "required": ["type", "surface_ids"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "shm" },
+            "shm_name": { "type": "string" },
+            "offsets": {
+              "type": "array",
+              "items": { "type": "integer" }
+            }
+          },
+          "required": ["type", "shm_name", "offsets"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "dxgi" },
+            "shared_handles": {
+              "type": "array",
+              "items": { "type": "integer" }
+            }
+          },
+          "required": ["type", "shared_handles"]
+        }
+      ]
+    },
+    "sync": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["metal_event", "d3d_fence", "semaphore", "polling"]
+        },
+        "handle": {
+          "type": "integer"
+        }
+      },
+      "required": ["type"]
+    }
+  }
+}
