@@ -104,6 +104,8 @@ Each Key Access Object follows the OpenTDF schema:
     "alg": "HS256",
     "hash": "base64_policy_binding_hash"
   },
+  "ephemeralPublicKey": "base64_compressed_sec1_point",
+  "schemaVersion": "1.0",
   "encryptedMetadata": "base64_encrypted_metadata",
   "kid": "key_identifier"
 }
@@ -116,6 +118,8 @@ Each Key Access Object follows the OpenTDF schema:
 | `protocol` | string | Yes | Protocol identifier (typically `"kas"`) |
 | `wrappedKey` | string | Yes | Base64-encoded wrapped symmetric key |
 | `policyBinding` | object | Yes | Cryptographic binding of key to policy |
+| `ephemeralPublicKey` | string | Conditional | Base64-encoded compressed SEC1 point. REQUIRED for EC key wrapping. See Section 3.3.1 |
+| `schemaVersion` | string | No | Schema version (e.g., `"1.0"`) |
 | `encryptedMetadata` | string | No | Base64-encoded encrypted metadata |
 | `kid` | string | No | Key identifier for key lookup |
 
@@ -255,9 +259,69 @@ TDF-JSON uses the same encryption process as OpenTDF:
 | Algorithm | Key Type | Description |
 |-----------|----------|-------------|
 | `RSA-OAEP` | RSA-2048+ | RSA with OAEP padding (SHA-256) |
-| `ec:secp256r1` | P-256 | ECDH key agreement + AES-256-KW |
-| `ec:secp384r1` | P-384 | ECDH key agreement + AES-256-KW |
-| `ec:secp521r1` | P-521 | ECDH key agreement + AES-256-KW |
+| `ec:secp256r1` | P-256 | ECDH + HKDF-SHA256 + AES-256-GCM |
+| `ec:secp384r1` | P-384 | ECDH + HKDF-SHA256 + AES-256-GCM |
+| `ec:secp521r1` | P-521 | ECDH + HKDF-SHA256 + AES-256-GCM |
+
+#### 3.3.1 EC Key Wrapping (ECIES)
+
+When using elliptic curve key wrapping, implementations MUST use compressed SEC1 point encoding for the ephemeral public key. The process is:
+
+**Encryption (Key Wrap):**
+
+1. Generate an ephemeral EC key pair on the same curve as the KAS public key
+2. Compute shared secret using ECDH: `Z = ECDH(ephemeral_private, kas_public)`
+3. Derive wrapping key using HKDF-SHA256:
+   - Input: `Z` (shared secret)
+   - Salt: empty
+   - Info: `"OpenTDF"` (7 bytes)
+   - Output: 32 bytes (256-bit AES key)
+4. Generate random 12-byte nonce
+5. Encrypt payload key using AES-256-GCM with derived key and nonce
+6. Encode ephemeral public key as **compressed SEC1 point** (see below)
+7. Store in keyAccess:
+   - `wrappedKey`: Base64(`nonce[12] || ciphertext || tag[16]`)
+   - `ephemeralPublicKey`: Base64(compressed SEC1 point)
+
+**Compressed SEC1 Point Format:**
+
+Ephemeral public keys MUST be encoded as compressed SEC1 points:
+
+| Curve | Compressed Size | Base64 Length |
+|-------|-----------------|---------------|
+| P-256 (secp256r1) | 33 bytes | 44 characters |
+| P-384 (secp384r1) | 49 bytes | 68 characters |
+| P-521 (secp521r1) | 67 bytes | 92 characters |
+
+The compressed format uses a single prefix byte (`0x02` or `0x03`) followed by the x-coordinate. This provides ~50% size savings compared to uncompressed points (65, 97, or 133 bytes respectively).
+
+**Decryption (Key Unwrap):**
+
+1. Decode `ephemeralPublicKey` from Base64 to compressed SEC1 bytes
+2. Parse compressed SEC1 point to recover full public key
+3. Compute shared secret: `Z = ECDH(kas_private, ephemeral_public)`
+4. Derive wrapping key using HKDF-SHA256 (same parameters as encryption)
+5. Decode `wrappedKey` from Base64 to get `nonce || ciphertext || tag`
+6. Decrypt using AES-256-GCM to recover payload key
+
+**Example keyAccess for EC wrapping:**
+
+```json
+{
+  "type": "wrapped",
+  "url": "https://kas.example.com",
+  "protocol": "kas",
+  "wrappedKey": "kfZnDPX0nx7+9XbrZTtZQWDi1IWf2PPQ5zNBupV8wOysf9bysl7eFWWxEeQJrIjCuDjDZB7uVMhCeztb",
+  "policyBinding": {
+    "alg": "HS256",
+    "hash": "XjRqMmzbGGSbNWzfctgZh8mZwH7X2uE0ta9FRL13bfI="
+  },
+  "ephemeralPublicKey": "A2EIdYZrPnUWFOr+d/HK97GafiBwwOqb3FqwGZxJUmPa",
+  "schemaVersion": "1.0"
+}
+```
+
+Note: The `ephemeralPublicKey` value `"A2EIdYZrPnUWFOr+d/HK97GafiBwwOqb3FqwGZxJUmPa"` decodes to 33 bytes starting with `0x03`, indicating a compressed P-256 point.
 
 ## 4. MIME Type and File Extension
 
@@ -501,6 +565,13 @@ For Model Context Protocol, TDF-JSON enables secure context sharing:
             }
           }
         },
+        "ephemeralPublicKey": {
+          "type": "string",
+          "description": "Base64-encoded compressed SEC1 point. Required for EC key wrapping. P-256: 33 bytes (44 chars), P-384: 49 bytes (68 chars), P-521: 67 bytes (92 chars)."
+        },
+        "schemaVersion": {
+          "type": "string"
+        },
         "encryptedMetadata": {
           "type": "string"
         },
@@ -633,3 +704,6 @@ For Model Context Protocol, TDF-JSON enables secure context sharing:
 
 ### draft-00 (January 2026)
 - Initial draft specification
+- Added EC key wrapping (ECIES) with mandatory compressed SEC1 points
+- Added `ephemeralPublicKey` field to keyAccess for EC wrapping
+- Added `schemaVersion` field to keyAccess

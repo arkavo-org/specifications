@@ -126,7 +126,9 @@ key-access = {
   4 => bstr,                      ; wrappedKey (raw bytes)
   5 => policy-binding,            ; policyBinding
   ? 6 => bstr,                    ; encryptedMetadata (raw bytes)
-  ? 7 => tstr                     ; kid
+  ? 7 => tstr,                    ; kid
+  ? 8 => bstr,                    ; ephemeralPublicKey (compressed SEC1, raw bytes)
+  ? 9 => tstr                     ; schemaVersion
 }
 
 key-access-type = "wrapped" / "remote"
@@ -136,6 +138,18 @@ policy-binding = {
   2 => bstr                       ; hash (raw bytes)
 }
 ```
+
+| Key | JSON Name | Type | Description |
+|-----|-----------|------|-------------|
+| 1 | type | text | `"wrapped"` or `"remote"` |
+| 2 | url | text | KAS endpoint URL |
+| 3 | protocol | text | Protocol identifier |
+| 4 | wrappedKey | bstr | Wrapped symmetric key (raw bytes) |
+| 5 | policyBinding | map | Cryptographic policy binding |
+| 6 | encryptedMetadata | bstr | Encrypted metadata (optional) |
+| 7 | kid | text | Key identifier (optional) |
+| 8 | ephemeralPublicKey | bstr | Compressed SEC1 point. REQUIRED for EC key wrapping |
+| 9 | schemaVersion | text | Schema version (optional) |
 
 #### 2.3.2 Method Structure
 
@@ -254,6 +268,8 @@ assertion-binding = {
 | KeyAccess | 5 | policyBinding | map |
 | KeyAccess | 6 | encryptedMetadata | bstr |
 | KeyAccess | 7 | kid | text |
+| KeyAccess | 8 | ephemeralPublicKey | bstr |
+| KeyAccess | 9 | schemaVersion | text |
 | PolicyBinding | 1 | alg | text |
 | PolicyBinding | 2 | hash | bstr |
 | Method | 1 | algorithm | text |
@@ -334,6 +350,62 @@ COSE_Sign1 = [
   signature: bstr
 ]
 ```
+
+## 4.3 EC Key Wrapping (ECIES)
+
+When using elliptic curve key wrapping, implementations MUST use compressed SEC1 point encoding for the ephemeral public key. Unlike TDF-JSON where the ephemeral key is base64-encoded, TDF-CBOR stores it as raw bytes.
+
+**Supported Curves:**
+
+| Curve | Compressed Size | CBOR Overhead |
+|-------|-----------------|---------------|
+| P-256 (secp256r1) | 33 bytes | 2 bytes (bstr header) |
+| P-384 (secp384r1) | 49 bytes | 2 bytes |
+| P-521 (secp521r1) | 67 bytes | 2 bytes |
+
+**Encryption (Key Wrap):**
+
+1. Generate an ephemeral EC key pair on the same curve as the KAS public key
+2. Compute shared secret using ECDH: `Z = ECDH(ephemeral_private, kas_public)`
+3. Derive wrapping key using HKDF-SHA256:
+   - Input: `Z` (shared secret)
+   - Salt: empty
+   - Info: `"OpenTDF"` (7 bytes)
+   - Output: 32 bytes (256-bit AES key)
+4. Generate random 12-byte nonce
+5. Encrypt payload key using AES-256-GCM with derived key and nonce
+6. Encode ephemeral public key as **compressed SEC1 point**
+7. Store in keyAccess:
+   - Key 4 (`wrappedKey`): `bstr(nonce[12] || ciphertext || tag[16])`
+   - Key 8 (`ephemeralPublicKey`): `bstr(compressed SEC1 point)`
+
+**Decryption (Key Unwrap):**
+
+1. Extract `ephemeralPublicKey` (key 8) as raw bytes
+2. Parse compressed SEC1 point to recover full public key
+3. Compute shared secret: `Z = ECDH(kas_private, ephemeral_public)`
+4. Derive wrapping key using HKDF-SHA256 (same parameters)
+5. Extract `wrappedKey` (key 4) to get `nonce || ciphertext || tag`
+6. Decrypt using AES-256-GCM to recover payload key
+
+**Example keyAccess in CBOR diagnostic notation:**
+
+```
+{
+  1: "wrapped",                              ; type
+  2: "https://kas.example.com",              ; url
+  3: "kas",                                  ; protocol
+  4: h'91f667...5b',                         ; wrappedKey (60 bytes)
+  5: {                                       ; policyBinding
+    1: "HS256",
+    2: h'5e346a326cdb18649b356cdf72d81987...'
+  },
+  8: h'036108758...3da',                     ; ephemeralPublicKey (33 bytes for P-256)
+  9: "1.0"                                   ; schemaVersion
+}
+```
+
+Note: The compressed P-256 point is stored directly as 33 bytes, saving 11 bytes compared to base64 encoding in TDF-JSON.
 
 ## 5. Size Comparison
 
@@ -602,7 +674,9 @@ key-access = {
   4 => bstr,                            ; wrappedKey
   5 => policy-binding,                  ; policyBinding
   ? 6 => bstr,                          ; encryptedMetadata
-  ? 7 => tstr                           ; kid
+  ? 7 => tstr,                          ; kid
+  ? 8 => bstr,                          ; ephemeralPublicKey (compressed SEC1)
+  ? 9 => tstr                           ; schemaVersion
 }
 
 policy-binding = {
@@ -696,3 +770,6 @@ assertion-binding = {
 - Initial draft specification
 - COSE integration defined as optional extension
 - CDDL schema defined
+- Added EC key wrapping (ECIES) with mandatory compressed SEC1 points
+- Added key 8 (`ephemeralPublicKey`) for EC wrapping
+- Added key 9 (`schemaVersion`) for versioning
