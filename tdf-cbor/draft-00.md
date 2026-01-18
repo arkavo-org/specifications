@@ -57,6 +57,87 @@ CBOR uses a type-length-value encoding with the following major types:
 | 6 | 0xc0-0xdb | Tag |
 | 7 | 0xe0-0xfb | Simple values (bool, null, float) |
 
+### 1.5 Enumerated Values
+
+TDF-CBOR uses integer enums instead of string values to minimize size. Each enum value is encoded as a single CBOR unsigned integer (1 byte for values 0-23).
+
+#### 1.5.1 Encryption Type
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"split"` | Split key encryption |
+
+#### 1.5.2 Key Access Type
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"wrapped"` | Wrapped key |
+| 1 | `"remote"` | Remote key |
+
+#### 1.5.3 Key Protocol
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"kas"` | Key Access Service |
+
+#### 1.5.4 Symmetric Algorithm
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"AES-256-GCM"` | AES-256 in GCM mode |
+
+#### 1.5.5 Hash/Signature Algorithm
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"HS256"` | HMAC-SHA256 |
+| 1 | `"HS384"` | HMAC-SHA384 |
+| 2 | `"HS512"` | HMAC-SHA512 |
+| 3 | `"GMAC"` | Galois MAC |
+| 4 | `"SHA256"` | SHA-256 hash |
+| 5 | `"ES256"` | ECDSA P-256 |
+| 6 | `"ES384"` | ECDSA P-384 |
+| 7 | `"ES512"` | ECDSA P-521 |
+
+#### 1.5.6 Payload Type
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"inline"` | Inline payload |
+| 1 | `"reference"` | External reference |
+
+#### 1.5.7 Payload Protocol
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"binary"` | Raw binary |
+| 1 | `"binary-chunked"` | Chunked binary |
+
+#### 1.5.8 ECC Curve
+
+| Value | JSON Equivalent | Description |
+|-------|-----------------|-------------|
+| 0 | `"secp256r1"` | NIST P-256 |
+| 1 | `"secp384r1"` | NIST P-384 |
+| 2 | `"secp521r1"` | NIST P-521 |
+| 3 | `"secp256k1"` | Bitcoin curve |
+
+**CDDL enum definitions:**
+
+```cddl
+; Enumerated types for compact encoding
+encryption-type = 0              ; split
+key-access-type = 0 / 1          ; wrapped=0, remote=1
+key-protocol = 0                 ; kas
+symmetric-alg = 0                ; AES-256-GCM
+hash-alg = 0..7                  ; HS256=0, HS384=1, HS512=2, GMAC=3, SHA256=4, ES256=5, ES384=6, ES512=7
+payload-type = 0 / 1             ; inline=0, reference=1
+payload-protocol = 0 / 1         ; binary=0, binary-chunked=1
+ecc-curve = 0..3                 ; secp256r1=0, secp384r1=1, secp521r1=2, secp256k1=3
+```
+
+**Size savings:** Using integer enums saves ~52 bytes per TDF document compared to string values.
+
 ## 2. Specification
 
 ### 2.1 Document Structure
@@ -108,7 +189,7 @@ manifest = {
 }
 
 encryption-information = {
-  1 => "split",                   ; type
+  1 => 0,                         ; type: split (enum)
   2 => [+ key-access],            ; keyAccess
   3 => method,                    ; method
   4 => integrity-information,     ; integrityInformation
@@ -120,9 +201,9 @@ encryption-information = {
 
 ```cddl
 key-access = {
-  1 => key-access-type,           ; type
+  1 => 0 / 1,                     ; type: wrapped=0, remote=1 (enum)
   2 => tstr,                      ; url
-  3 => tstr,                      ; protocol
+  3 => 0,                         ; protocol: kas=0 (enum)
   4 => bstr,                      ; wrappedKey (raw bytes)
   5 => policy-binding,            ; policyBinding
   ? 6 => bstr,                    ; encryptedMetadata (raw bytes)
@@ -131,19 +212,17 @@ key-access = {
   ? 9 => tstr                     ; schemaVersion
 }
 
-key-access-type = "wrapped" / "remote"
-
 policy-binding = {
-  1 => tstr,                      ; alg
+  1 => 0..7,                      ; alg: hash-alg enum (HS256=0, etc.)
   2 => bstr                       ; hash (raw bytes)
 }
 ```
 
 | Key | JSON Name | Type | Description |
 |-----|-----------|------|-------------|
-| 1 | type | text | `"wrapped"` or `"remote"` |
+| 1 | type | uint | `0` = wrapped, `1` = remote |
 | 2 | url | text | KAS endpoint URL |
-| 3 | protocol | text | Protocol identifier |
+| 3 | protocol | uint | `0` = kas |
 | 4 | wrappedKey | bstr | Wrapped symmetric key (raw bytes) |
 | 5 | policyBinding | map | Cryptographic policy binding |
 | 6 | encryptedMetadata | bstr | Encrypted metadata (optional) |
@@ -155,12 +234,10 @@ policy-binding = {
 
 ```cddl
 method = {
-  1 => algorithm,                 ; algorithm
-  2 => bstr,                      ; iv (raw bytes, 12 bytes for GCM)
+  1 => 0,                         ; algorithm: AES-256-GCM=0 (enum)
+  2 => bstr .size 12,             ; iv (raw bytes, 12 bytes for GCM)
   ? 3 => bool                     ; isStreamable
 }
-
-algorithm = "AES-256-GCM"
 ```
 
 #### 2.3.3 Integrity Information Structure
@@ -168,18 +245,16 @@ algorithm = "AES-256-GCM"
 ```cddl
 integrity-information = {
   1 => root-signature,            ; rootSignature
-  2 => segment-hash-alg,          ; segmentHashAlg
+  2 => 3 / 4,                     ; segmentHashAlg: GMAC=3, SHA256=4 (enum)
   ? 3 => [* segment],             ; segments
   ? 4 => uint,                    ; segmentSizeDefault
   ? 5 => uint                     ; encryptedSegmentSizeDefault
 }
 
 root-signature = {
-  1 => tstr,                      ; alg
+  1 => 0..7,                      ; alg: hash-alg enum (HS256=0, etc.)
   2 => bstr                       ; sig (raw bytes)
 }
-
-segment-hash-alg = "GMAC" / "SHA256"
 
 segment = {
   1 => bstr,                      ; hash
@@ -194,8 +269,8 @@ The key advantage of TDF-CBOR is direct binary payload embedding:
 
 ```cddl
 payload = {
-  1 => "inline",                  ; type
-  2 => "binary",                  ; protocol (not base64!)
+  1 => 0,                         ; type: inline=0 (enum)
+  2 => 0,                         ; protocol: binary=0 (enum)
   ? 3 => tstr,                    ; mimeType
   4 => true,                      ; isEncrypted
   ? 5 => uint,                    ; length
@@ -203,7 +278,7 @@ payload = {
 }
 ```
 
-**Key Difference from TDF-JSON:** The `protocol` is `"binary"` and `value` is a CBOR byte string (`bstr`) containing raw ciphertext, not base64-encoded text.
+**Key Difference from TDF-JSON:** Integer enums for `type` and `protocol`, and `value` is a CBOR byte string (`bstr`) containing raw ciphertext, not base64-encoded text.
 
 #### 2.4.1 Chunked Payload
 
@@ -211,8 +286,8 @@ For streaming or large payloads:
 
 ```cddl
 payload-chunked = {
-  1 => "inline",                  ; type
-  2 => "binary-chunked",          ; protocol
+  1 => 0,                         ; type: inline=0 (enum)
+  2 => 1,                         ; protocol: binary-chunked=1 (enum)
   ? 3 => tstr,                    ; mimeType
   4 => true,                      ; isEncrypted
   5 => [+ chunk]                  ; chunks
@@ -247,50 +322,50 @@ assertion-binding = {
 
 ### 3.1 Complete Key Map
 
-| Context | Key | JSON Name | Type |
-|---------|-----|-----------|------|
-| Root | 1 | tdf | text |
-| Root | 2 | version | array |
-| Root | 3 | created | uint |
-| Root | 4 | manifest | map |
-| Root | 5 | payload | map |
-| Manifest | 1 | encryptionInformation | map |
-| Manifest | 2 | assertions | array |
-| EncInfo | 1 | type | text |
-| EncInfo | 2 | keyAccess | array |
-| EncInfo | 3 | method | map |
-| EncInfo | 4 | integrityInformation | map |
-| EncInfo | 5 | policy | bstr |
-| KeyAccess | 1 | type | text |
-| KeyAccess | 2 | url | text |
-| KeyAccess | 3 | protocol | text |
-| KeyAccess | 4 | wrappedKey | bstr |
-| KeyAccess | 5 | policyBinding | map |
-| KeyAccess | 6 | encryptedMetadata | bstr |
-| KeyAccess | 7 | kid | text |
-| KeyAccess | 8 | ephemeralPublicKey | bstr |
-| KeyAccess | 9 | schemaVersion | text |
-| PolicyBinding | 1 | alg | text |
-| PolicyBinding | 2 | hash | bstr |
-| Method | 1 | algorithm | text |
-| Method | 2 | iv | bstr |
-| Method | 3 | isStreamable | bool |
-| Integrity | 1 | rootSignature | map |
-| Integrity | 2 | segmentHashAlg | text |
-| Integrity | 3 | segments | array |
-| Integrity | 4 | segmentSizeDefault | uint |
-| Integrity | 5 | encryptedSegmentSizeDefault | uint |
-| RootSig | 1 | alg | text |
-| RootSig | 2 | sig | bstr |
-| Payload | 1 | type | text |
-| Payload | 2 | protocol | text |
-| Payload | 3 | mimeType | text |
-| Payload | 4 | isEncrypted | bool |
-| Payload | 5 | length | uint |
-| Payload | 6 | value | bstr |
-| Chunk | 1 | index | uint |
-| Chunk | 2 | value | bstr |
-| Chunk | 3 | hash | bstr |
+| Context | Key | JSON Name | Type | Enum Values |
+|---------|-----|-----------|------|-------------|
+| Root | 1 | tdf | text | `"cbor"` |
+| Root | 2 | version | array | `[major, minor, patch]` |
+| Root | 3 | created | uint | Unix timestamp |
+| Root | 4 | manifest | map | |
+| Root | 5 | payload | map | |
+| Manifest | 1 | encryptionInformation | map | |
+| Manifest | 2 | assertions | array | |
+| EncInfo | 1 | type | uint | `0` = split |
+| EncInfo | 2 | keyAccess | array | |
+| EncInfo | 3 | method | map | |
+| EncInfo | 4 | integrityInformation | map | |
+| EncInfo | 5 | policy | bstr | |
+| KeyAccess | 1 | type | uint | `0` = wrapped, `1` = remote |
+| KeyAccess | 2 | url | text | |
+| KeyAccess | 3 | protocol | uint | `0` = kas |
+| KeyAccess | 4 | wrappedKey | bstr | |
+| KeyAccess | 5 | policyBinding | map | |
+| KeyAccess | 6 | encryptedMetadata | bstr | |
+| KeyAccess | 7 | kid | text | |
+| KeyAccess | 8 | ephemeralPublicKey | bstr | |
+| KeyAccess | 9 | schemaVersion | text | |
+| PolicyBinding | 1 | alg | uint | `0` = HS256, `3` = GMAC, etc. |
+| PolicyBinding | 2 | hash | bstr | |
+| Method | 1 | algorithm | uint | `0` = AES-256-GCM |
+| Method | 2 | iv | bstr | |
+| Method | 3 | isStreamable | bool | |
+| Integrity | 1 | rootSignature | map | |
+| Integrity | 2 | segmentHashAlg | uint | `3` = GMAC, `4` = SHA256 |
+| Integrity | 3 | segments | array | |
+| Integrity | 4 | segmentSizeDefault | uint | |
+| Integrity | 5 | encryptedSegmentSizeDefault | uint | |
+| RootSig | 1 | alg | uint | `0` = HS256, etc. |
+| RootSig | 2 | sig | bstr | |
+| Payload | 1 | type | uint | `0` = inline, `1` = reference |
+| Payload | 2 | protocol | uint | `0` = binary, `1` = binary-chunked |
+| Payload | 3 | mimeType | text | |
+| Payload | 4 | isEncrypted | bool | |
+| Payload | 5 | length | uint | |
+| Payload | 6 | value | bstr | |
+| Chunk | 1 | index | uint | |
+| Chunk | 2 | value | bstr | |
+| Chunk | 3 | hash | bstr | |
 
 ### 3.2 CBOR Tags
 
@@ -392,12 +467,12 @@ When using elliptic curve key wrapping, implementations MUST use compressed SEC1
 
 ```
 {
-  1: "wrapped",                              ; type
+  1: 0,                                      ; type: wrapped
   2: "https://kas.example.com",              ; url
-  3: "kas",                                  ; protocol
+  3: 0,                                      ; protocol: kas
   4: h'91f667...5b',                         ; wrappedKey (60 bytes)
   5: {                                       ; policyBinding
-    1: "HS256",
+    1: 0,                                    ; alg: HS256
     2: h'5e346a326cdb18649b356cdf72d81987...'
   },
   8: h'036108758...3da',                     ; ephemeralPublicKey (33 bytes for P-256)
@@ -405,7 +480,7 @@ When using elliptic curve key wrapping, implementations MUST use compressed SEC1
 }
 ```
 
-Note: The compressed P-256 point is stored directly as 33 bytes, saving 11 bytes compared to base64 encoding in TDF-JSON.
+Note: Integer enums (`1: 0` instead of `1: "wrapped"`) plus compressed SEC1 points provide maximum size efficiency.
 
 ## 5. Size Comparison
 
@@ -416,10 +491,27 @@ For a 1KB plaintext payload:
 | Format | Manifest | Payload | Total | Overhead |
 |--------|----------|---------|-------|----------|
 | TDF-JSON | ~800B | 1,365B | ~2,165B | +116% |
-| **TDF-CBOR** | ~500B | 1,024B | ~1,524B | +52% |
-| Savings | 38% | 25% | 30% | |
+| **TDF-CBOR** | ~450B | 1,024B | ~1,474B | +47% |
+| Savings | 44% | 25% | 32% | |
 
-### 5.2 Example Size Breakdown
+### 5.2 Enum Savings
+
+Using integer enums instead of string values saves ~52 bytes per TDF document:
+
+| Field | String Size | Enum Size | Savings |
+|-------|-------------|-----------|---------|
+| encryptionInformation.type | 6 bytes (`"split"`) | 1 byte (`0`) | 5 bytes |
+| keyAccess.type | 8 bytes (`"wrapped"`) | 1 byte (`0`) | 7 bytes |
+| keyAccess.protocol | 4 bytes (`"kas"`) | 1 byte (`0`) | 3 bytes |
+| method.algorithm | 12 bytes (`"AES-256-GCM"`) | 1 byte (`0`) | 11 bytes |
+| integrityInformation.segmentHashAlg | 5 bytes (`"GMAC"`) | 1 byte (`3`) | 4 bytes |
+| rootSignature.alg | 6 bytes (`"HS256"`) | 1 byte (`0`) | 5 bytes |
+| policyBinding.alg | 6 bytes (`"HS256"`) | 1 byte (`0`) | 5 bytes |
+| payload.type | 7 bytes (`"inline"`) | 1 byte (`0`) | 6 bytes |
+| payload.protocol | 7 bytes (`"binary"`) | 1 byte (`0`) | 6 bytes |
+| **Total** | ~61 bytes | ~9 bytes | **~52 bytes** |
+
+### 5.3 Example Size Breakdown
 
 **TDF-JSON payload (1024 bytes plaintext):**
 - Base64 encoding: 1,368 characters
@@ -443,43 +535,44 @@ For a 1KB plaintext payload:
   1: "cbor",
   2: [1, 0, 0],
   3: 1737129600,
-  4: {
-    1: {
-      1: "split",
-      2: [{
-        1: "wrapped",
-        2: "https://kas.example.com/api/kas",
-        3: "kas",
-        4: h'33b186a63a53b1235c966996f4e6bde0df50cbff9023d893597754826153d4d58294866b28497f02ed779d504383e3fd2b29a9cd5660a4742ff090354fc19c924166199570f3f7c55bd380f74689734766450e5ecec20aef77a0ce594b247b1a312b5a3c5da83f7c1a0b45e2b78b2b2f11c3dbc13c2f86f54426e4ba0a9b2b890de15bf3d7986cac7ab6bf624472604c4f7f79b72d8c0277ef4099c4b2cc36d65d1ca430bb08353b711d0a08512f64a5b8501cbfcc2ef7259664ec6a1109b91705aa325fab27ce0db6797cbda46facf91f97ed212451dbaa7f1618ec44241283852bb6aba2a98672c0dac5441a6588b6373048508e3ed91024be97e1c075c4',
-        5: {
-          1: "HS256",
-          2: h'3034...1cf6'
-        }
-      }],
-      3: {
-        1: "AES-256-GCM",
-        2: h'0fd17c1c7cb4b6ecb400e3bc',
-        3: true
-      },
-      4: {
-        1: {
-          1: "HS256",
-          2: h'66636339...37616638'
+  4: {                                        ; manifest
+    1: {                                      ; encryptionInformation
+      1: 0,                                   ; type: split
+      2: [{                                   ; keyAccess
+        1: 0,                                 ; type: wrapped
+        2: "https://kas.example.com/api/kas", ; url
+        3: 0,                                 ; protocol: kas
+        4: h'33b186...075c4',                 ; wrappedKey
+        5: {                                  ; policyBinding
+          1: 0,                               ; alg: HS256
+          2: h'3034...1cf6'                   ; hash
         },
-        2: "GMAC",
-        3: [],
-        4: 1048576,
-        5: 1048604
+        8: h'036108...3da'                    ; ephemeralPublicKey (33 bytes)
+      }],
+      3: {                                    ; method
+        1: 0,                                 ; algorithm: AES-256-GCM
+        2: h'0fd17c1c7cb4b6ecb400e3bc',       ; iv (12 bytes)
+        3: true                               ; isStreamable
       },
-      5: h'7b2275756964223a226235386666346434...'
+      4: {                                    ; integrityInformation
+        1: {                                  ; rootSignature
+          1: 0,                               ; alg: HS256
+          2: h'66636339...37616638'           ; sig
+        },
+        2: 3,                                 ; segmentHashAlg: GMAC
+        3: [],                                ; segments
+        4: 1048576,                           ; segmentSizeDefault
+        5: 1048604                            ; encryptedSegmentSizeDefault
+      },
+      5: h'7b2275756964223a226235386666346434...'  ; policy
     }
   },
-  5: {
-    1: "inline",
-    2: "binary",
-    3: "text/plain",
-    4: true,
-    5: 53,
+  5: {                                        ; payload
+    1: 0,                                     ; type: inline
+    2: 0,                                     ; protocol: binary
+    3: "text/plain",                          ; mimeType
+    4: true,                                  ; isEncrypted
+    5: 53,                                    ; length
     6: h'9c5d3331770c9a45388664ae80bdbf290cfc054528b0c6343c3122a13a74967646333e7a94d9b01'
   }
 }
@@ -499,20 +592,22 @@ A5                                      # map(5)
    ... (manifest bytes)
    05                                   # key: 5
    A6                                   # map(6)
-      01                                # key: 1
-      66 696E6C696E65                   # text: "inline"
-      02                                # key: 2
-      66 62696E617279                   # text: "binary"
-      03                                # key: 3
+      01                                # key: 1 (type)
+      00                                # uint: 0 (inline)
+      02                                # key: 2 (protocol)
+      00                                # uint: 0 (binary)
+      03                                # key: 3 (mimeType)
       6A 746578742F706C61696E           # text: "text/plain"
-      04                                # key: 4
+      04                                # key: 4 (isEncrypted)
       F5                                # true
-      05                                # key: 5
+      05                                # key: 5 (length)
       18 35                             # uint: 53
-      06                                # key: 6
+      06                                # key: 6 (value)
       58 35                             # bytes(53)
          9C5D3331770C9A453886...        # ciphertext
 ```
+
+**Comparison:** The payload map now uses `00` (1 byte) for `type: inline` instead of `66 696E6C696E65` (7 bytes), saving 6 bytes per field.
 
 ## 7. MIME Type and File Extension
 
@@ -570,7 +665,15 @@ TDF-CBOR inherits all security properties from OpenTDF:
    - Decode base64 to bytes
    - Store as CBOR bstr
 3. Convert string keys to integer keys
-4. Encode as CBOR
+4. Convert string enum values to integers (see Section 1.5):
+   - "split" → 0
+   - "wrapped" → 0, "remote" → 1
+   - "kas" → 0
+   - "AES-256-GCM" → 0
+   - "HS256" → 0, "GMAC" → 3, "SHA256" → 4, etc.
+   - "inline" → 0
+   - "binary" → 0
+5. Encode as CBOR
 ```
 
 ### 9.2 Conversion to TDF-JSON
@@ -581,7 +684,15 @@ TDF-CBOR inherits all security properties from OpenTDF:
    - Encode bytes as base64
    - Store as JSON string
 3. Convert integer keys to string keys
-4. Serialize as JSON
+4. Convert integer enum values to strings (see Section 1.5):
+   - 0 → "split" (encryption type)
+   - 0 → "wrapped", 1 → "remote" (key access type)
+   - 0 → "kas" (protocol)
+   - 0 → "AES-256-GCM" (algorithm)
+   - 0 → "HS256", 3 → "GMAC", 4 → "SHA256", etc. (hash alg)
+   - 0 → "inline" (payload type)
+   - 0 → "binary", 1 → "binary-chunked" (protocol)
+5. Serialize as JSON
 ```
 
 ### 9.3 Conversion to/from OpenTDF (ZIP)
@@ -625,10 +736,13 @@ Payload: <TDF-CBOR bytes>
 ### 10.2 Validation Checklist
 
 - [ ] Format identifier is `"cbor"`
-- [ ] Version is valid semver array
+- [ ] Version is valid semver array `[major, minor, patch]`
 - [ ] All required keys present
+- [ ] All enum values are valid integers (see Section 1.5)
 - [ ] All byte strings are valid lengths
-- [ ] Policy binding verifies
+- [ ] Policy binding algorithm is valid hash-alg enum (0-7)
+- [ ] Encryption algorithm is `0` (AES-256-GCM)
+- [ ] Segment hash algorithm is `3` (GMAC) or `4` (SHA256)
 - [ ] Ciphertext length matches header
 
 ## 11. References
@@ -642,7 +756,9 @@ Payload: <TDF-CBOR bytes>
 ## Appendix A: Complete CDDL Schema
 
 ```cddl
+; =============================================================================
 ; TDF-CBOR Root Structure
+; =============================================================================
 tdf-cbor = {
   1 => "cbor",                          ; format identifier
   2 => version,                         ; version
@@ -653,14 +769,30 @@ tdf-cbor = {
 
 version = [major: uint, minor: uint, patch: uint]
 
+; =============================================================================
+; Enumerated Types (Section 1.5)
+; =============================================================================
+encryption-type = 0                     ; split
+key-access-type = 0 / 1                 ; wrapped=0, remote=1
+key-protocol = 0                        ; kas
+symmetric-alg = 0                       ; AES-256-GCM
+hash-alg = 0..7                         ; HS256=0, HS384=1, HS512=2, GMAC=3,
+                                        ; SHA256=4, ES256=5, ES384=6, ES512=7
+payload-type = 0 / 1                    ; inline=0, reference=1
+payload-protocol = 0 / 1                ; binary=0, binary-chunked=1
+ecc-curve = 0..3                        ; secp256r1=0, secp384r1=1,
+                                        ; secp521r1=2, secp256k1=3
+
+; =============================================================================
 ; Manifest
+; =============================================================================
 manifest = {
   1 => encryption-information,
   ? 2 => [* assertion]
 }
 
 encryption-information = {
-  1 => "split",                         ; type
+  1 => encryption-type,                 ; type: 0=split
   2 => [+ key-access],                  ; keyAccess
   3 => method,                          ; method
   4 => integrity-information,           ; integrityInformation
@@ -668,9 +800,9 @@ encryption-information = {
 }
 
 key-access = {
-  1 => "wrapped" / "remote",            ; type
+  1 => key-access-type,                 ; type: 0=wrapped, 1=remote
   2 => tstr,                            ; url
-  3 => tstr,                            ; protocol
+  3 => key-protocol,                    ; protocol: 0=kas
   4 => bstr,                            ; wrappedKey
   5 => policy-binding,                  ; policyBinding
   ? 6 => bstr,                          ; encryptedMetadata
@@ -680,26 +812,26 @@ key-access = {
 }
 
 policy-binding = {
-  1 => tstr,                            ; alg
+  1 => hash-alg,                        ; alg: 0=HS256, etc.
   2 => bstr                             ; hash
 }
 
 method = {
-  1 => "AES-256-GCM",                   ; algorithm
+  1 => symmetric-alg,                   ; algorithm: 0=AES-256-GCM
   2 => bstr .size 12,                   ; iv (12 bytes for GCM)
   ? 3 => bool                           ; isStreamable
 }
 
 integrity-information = {
   1 => root-signature,                  ; rootSignature
-  2 => "GMAC" / "SHA256",               ; segmentHashAlg
+  2 => 3 / 4,                           ; segmentHashAlg: 3=GMAC, 4=SHA256
   ? 3 => [* segment],                   ; segments
   ? 4 => uint,                          ; segmentSizeDefault
   ? 5 => uint                           ; encryptedSegmentSizeDefault
 }
 
 root-signature = {
-  1 => tstr,                            ; alg
+  1 => hash-alg,                        ; alg: 0=HS256, etc.
   2 => bstr                             ; sig
 }
 
@@ -709,10 +841,12 @@ segment = {
   ? 3 => uint                           ; encryptedSegmentSize
 }
 
+; =============================================================================
 ; Payload
+; =============================================================================
 payload = {
-  1 => "inline",                        ; type
-  2 => "binary",                        ; protocol
+  1 => payload-type,                    ; type: 0=inline
+  2 => payload-protocol,                ; protocol: 0=binary
   ? 3 => tstr,                          ; mimeType
   4 => true,                            ; isEncrypted
   ? 5 => uint,                          ; length
@@ -720,8 +854,8 @@ payload = {
 }
 
 payload-chunked = {
-  1 => "inline",                        ; type
-  2 => "binary-chunked",                ; protocol
+  1 => payload-type,                    ; type: 0=inline
+  2 => 1,                               ; protocol: 1=binary-chunked
   ? 3 => tstr,                          ; mimeType
   4 => true,                            ; isEncrypted
   5 => [+ chunk]                        ; chunks
@@ -733,7 +867,9 @@ chunk = {
   ? 3 => bstr                           ; hash
 }
 
+; =============================================================================
 ; Assertions
+; =============================================================================
 assertion = {
   1 => tstr,                            ; id
   2 => tstr,                            ; type
@@ -773,3 +909,5 @@ assertion-binding = {
 - Added EC key wrapping (ECIES) with mandatory compressed SEC1 points
 - Added key 8 (`ephemeralPublicKey`) for EC wrapping
 - Added key 9 (`schemaVersion`) for versioning
+- Added integer enum encoding for all type fields (~52 bytes savings)
+- Section 1.5 defines all enum values for compact binary encoding
