@@ -81,6 +81,47 @@ Wire format: Direct token stream with logit masking enforcement
 
 ---
 
+### tdf-json/
+
+**TDF-JSON: Trusted Data Format — JSON Serialization**
+
+TDF-JSON defines a JSON-based serialization for the Trusted Data Format, providing encrypted payloads with policy-bound key access.
+
+**Latest Draft**: [draft-00](tdf-json/draft-00.md)
+
+---
+
+### tdf-cbor/
+
+**TDF-CBOR: Trusted Data Format — CBOR Serialization**
+
+TDF-CBOR defines a compact CBOR-based serialization for the Trusted Data Format, optimized for constrained environments and reduced wire size.
+
+**Latest Draft**: [draft-00](tdf-cbor/draft-00.md)
+
+---
+
+### agent-runtime-policy/
+
+**Agent Runtime Policy (ARP): Runtime Adaptation for AI Agents**
+
+ARP provides a standard format for describing how AI agents adapt their behavior at runtime. A companion to the Agent Definition Language (ADL), ARP defines the adaptation machinery that governs an agent's operational evolution within its declared boundaries:
+
+- **Adaptation Engine**: Thompson Sampling, UCB1, epsilon-greedy with Bayesian priors
+- **Multi-Timescale Feedback**: Per-event quality gates, PolicyCache with temporal decay, peer gossip, offline consolidation
+- **One-Way Ratchet**: Automated adaptation may only tighten policy; relaxation requires human approval
+- **Cross-Layer Escalation**: Events in one layer (cognitive, execution, data, network) trigger policy tightening in others
+- **Budget & Velocity Constraints**: Per-task ceilings, per-minute spend limits, degradation chains
+- **Cryptographic Integrity**: Document signing, ADL binding, tamper-evident state storage
+
+Wire format: `application/arp+json` (JSON canonical), `.arp.toml` (authoring)
+
+**Latest Draft**: [arp-spec-draft-00](agent-runtime-policy/arp-spec-draft-00.md)
+
+**JSON Schemas**: [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/)
+
+---
+
 ## JSON Schemas
 
 Machine-readable schema definitions for protocol validation:
@@ -88,6 +129,7 @@ Machine-readable schema definitions for protocol validation:
 | Specification | Schema Directory |
 |---------------|------------------|
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
+| Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
 
 ## License
 

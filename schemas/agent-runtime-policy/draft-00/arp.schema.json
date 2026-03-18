@@ -1,0 +1,1391 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-runtime-policy/draft-00/arp.schema.json",
+  "title": "Agent Runtime Policy (ARP) Schema",
+  "description": "JSON Schema for the Agent Runtime Policy specification draft-00. Defines how AI agents adapt behavior at runtime.",
+  "version": "0.1.0-draft",
+  "type": "object",
+  "required": ["arp_spec", "adl_ref", "adaptation", "feedback_loops", "budget"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x_[a-z][a-z0-9_]*$": {
+      "description": "Extension members MUST be prefixed with x_ followed by a namespace identifier"
+    }
+  },
+  "properties": {
+    "arp_spec": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+      "description": "Version of the ARP specification (semantic versioning)"
+    },
+    "adl_ref": { "$ref": "#/$defs/AdlRef" },
+    "integrity": { "$ref": "#/$defs/Integrity" },
+    "adaptation": { "$ref": "#/$defs/Adaptation" },
+    "feedback_loops": { "$ref": "#/$defs/FeedbackLoops" },
+    "precedence": { "$ref": "#/$defs/Precedence" },
+    "cognitive": { "$ref": "#/$defs/Cognitive" },
+    "execution": { "$ref": "#/$defs/Execution" },
+    "data_sovereignty": { "$ref": "#/$defs/DataSovereignty" },
+    "network": { "$ref": "#/$defs/Network" },
+    "budget": { "$ref": "#/$defs/Budget" },
+    "escalation": { "$ref": "#/$defs/Escalation" },
+    "quarantine": { "$ref": "#/$defs/Quarantine" },
+    "hitl": { "$ref": "#/$defs/Hitl" },
+    "session": { "$ref": "#/$defs/Session" },
+    "state_storage": { "$ref": "#/$defs/StateStorage" },
+    "observability": { "$ref": "#/$defs/Observability" },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary metadata"
+    }
+  },
+  "$defs": {
+    "AdlRef": {
+      "type": "object",
+      "description": "Cryptographic binding to the companion ADL document (§4.5)",
+      "anyOf": [
+        { "required": ["uri"] },
+        { "required": ["document_hash"] }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI of the companion ADL document"
+        },
+        "document_hash": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+:[a-f0-9]+$",
+          "description": "Cryptographic hash of the ADL document (algorithm:hex_digest)"
+        }
+      }
+    },
+    "Integrity": {
+      "type": "object",
+      "description": "Cryptographic integrity and trust binding (§5)",
+      "required": ["signed_by", "algorithm", "signature", "signed_content"],
+      "additionalProperties": false,
+      "properties": {
+        "signed_by": {
+          "type": "string",
+          "description": "DID of the signing authority"
+        },
+        "algorithm": {
+          "type": "string",
+          "description": "Signature algorithm (Ed25519 RECOMMENDED)"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Base64url-encoded signature"
+        },
+        "signed_content": {
+          "type": "string",
+          "enum": ["canonical", "digest"],
+          "description": "Whether signature covers canonical form or digest"
+        },
+        "digest_algorithm": {
+          "type": "string",
+          "description": "Required when signed_content is digest"
+        },
+        "digest_value": {
+          "type": "string",
+          "description": "Required when signed_content is digest"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        }
+      },
+      "if": {
+        "properties": { "signed_content": { "const": "digest" } }
+      },
+      "then": {
+        "required": ["signed_by", "algorithm", "signature", "signed_content", "digest_algorithm", "digest_value"]
+      }
+    },
+    "BetaPrior": {
+      "type": "object",
+      "description": "Beta distribution parameters",
+      "required": ["alpha", "beta"],
+      "additionalProperties": false,
+      "properties": {
+        "alpha": { "type": "number", "minimum": 0 },
+        "beta": { "type": "number", "minimum": 0 }
+      }
+    },
+    "Adaptation": {
+      "type": "object",
+      "description": "Core adaptation engine configuration (§6)",
+      "required": ["method"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["thompson_sampling", "epsilon_greedy", "ucb1", "static"],
+          "description": "Adaptation method identifier"
+        },
+        "parameters": { "$ref": "#/$defs/AdaptationParameters" },
+        "cold_start": { "$ref": "#/$defs/ColdStart" },
+        "prior_management": { "$ref": "#/$defs/PriorManagement" },
+        "signal_separation": { "$ref": "#/$defs/SignalSeparation" }
+      }
+    },
+    "AdaptationParameters": {
+      "type": "object",
+      "description": "Method-specific parameters (§6.1)",
+      "additionalProperties": false,
+      "properties": {
+        "exploration_floor": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.05,
+          "description": "Minimum exploration probability (thompson_sampling)"
+        },
+        "epsilon": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Exploration probability (epsilon_greedy)"
+        },
+        "epsilon_decay": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Per-episode decay factor for epsilon"
+        },
+        "epsilon_min": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Minimum epsilon value after decay"
+        }
+      }
+    },
+    "ColdStart": {
+      "type": "object",
+      "description": "Cold start policy (§6.2)",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["optimistic", "pessimistic", "neutral", "constitutional_only"],
+          "default": "optimistic"
+        },
+        "initial_prior": {
+          "$ref": "#/$defs/BetaPrior",
+          "default": { "alpha": 2, "beta": 1 }
+        },
+        "warmup_period": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 5,
+          "description": "Minimum observations before prior is considered reliable"
+        },
+        "warmup_behavior": {
+          "type": "string",
+          "enum": ["constitutional_only", "explore_with_guard", "normal"],
+          "default": "constitutional_only"
+        }
+      }
+    },
+    "PriorManagement": {
+      "type": "object",
+      "description": "Prior version binding and reset rules (§6.3)",
+      "additionalProperties": false,
+      "properties": {
+        "version_binding": {
+          "type": "string",
+          "enum": ["entity_hash", "semantic_version", "name_only"],
+          "default": "entity_hash"
+        },
+        "reset_on_version_change": {
+          "type": "boolean",
+          "default": true
+        },
+        "reset_state": {
+          "$ref": "#/$defs/BetaPrior",
+          "default": { "alpha": 2, "beta": 1 }
+        }
+      }
+    },
+    "SignalSeparation": {
+      "type": "object",
+      "description": "Availability vs quality signal separation (§6.4)",
+      "additionalProperties": false,
+      "properties": {
+        "availability_failures_update_priors": {
+          "type": "boolean",
+          "default": false
+        },
+        "availability_cooldown_sec": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 300
+        },
+        "availability_failure_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["timeout", "connection_refused", "rate_limited", "service_unavailable"]
+        }
+      }
+    },
+    "FeedbackLoops": {
+      "type": "object",
+      "description": "Multi-timescale feedback system (§7)",
+      "required": ["immediate", "short_term"],
+      "additionalProperties": false,
+      "properties": {
+        "immediate": { "$ref": "#/$defs/ImmediateFeedback" },
+        "short_term": { "$ref": "#/$defs/ShortTermFeedback" },
+        "gossip": { "$ref": "#/$defs/Gossip" },
+        "consolidation": { "$ref": "#/$defs/Consolidation" },
+        "resilience": { "$ref": "#/$defs/Resilience" }
+      }
+    },
+    "ImmediateFeedback": {
+      "type": "object",
+      "description": "Per-event feedback (§7.1)",
+      "required": ["quality_gate"],
+      "additionalProperties": false,
+      "properties": {
+        "quality_gate": { "$ref": "#/$defs/QualityGate" }
+      }
+    },
+    "QualityGate": {
+      "type": "object",
+      "description": "Quality gate configuration (§7.1.1)",
+      "required": ["threshold_default", "metric", "on_failure"],
+      "additionalProperties": false,
+      "properties": {
+        "threshold_default": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Default minimum quality score"
+        },
+        "metric": {
+          "type": "string",
+          "enum": ["cosine_similarity", "llm_judge", "regex_match", "composite"],
+          "description": "Quality measurement method"
+        },
+        "on_failure": {
+          "type": "string",
+          "enum": ["update_prior_and_log", "update_prior_and_retry", "log_only"],
+          "description": "Action when quality is below threshold"
+        },
+        "threshold_overrides": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ThresholdOverride" }
+        }
+      }
+    },
+    "ThresholdOverride": {
+      "type": "object",
+      "description": "Per-(task_class, entity) threshold override",
+      "required": ["task_class", "threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "task_class": { "type": "string" },
+        "entity": { "type": "string" },
+        "threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "ShortTermFeedback": {
+      "type": "object",
+      "description": "PolicyCache configuration (§7.2)",
+      "required": ["policy_cache"],
+      "additionalProperties": false,
+      "properties": {
+        "policy_cache": { "$ref": "#/$defs/PolicyCache" }
+      }
+    },
+    "PolicyCache": {
+      "type": "object",
+      "description": "PolicyCache behavior (§7.2.1)",
+      "required": ["default_ttl_sec", "decay_strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "default_ttl_sec": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decay_strategy": {
+          "type": "string",
+          "enum": ["exponential", "linear", "step", "none"]
+        },
+        "decay_half_life_sec": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Required for exponential decay"
+        },
+        "human_source_exempt_from_decay": {
+          "type": "boolean",
+          "default": true
+        },
+        "incident_source_quarantine_sec": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": { "decay_strategy": { "const": "exponential" } }
+      },
+      "then": {
+        "required": ["default_ttl_sec", "decay_strategy", "decay_half_life_sec"]
+      }
+    },
+    "Gossip": {
+      "type": "object",
+      "description": "Peer-to-peer policy propagation (§7.3)",
+      "required": ["propagation_interval_sec", "peer_discount_factor", "require_did_signature", "quorum"],
+      "additionalProperties": false,
+      "properties": {
+        "propagation_interval_sec": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peer_discount_factor": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "require_did_signature": {
+          "type": "boolean"
+        },
+        "quorum": { "$ref": "#/$defs/Quorum" }
+      }
+    },
+    "Quorum": {
+      "type": "object",
+      "description": "Sybil resistance for gossip (§7.3.1)",
+      "required": ["min_trusted_peers", "trusted_registry", "untrusted_did_weight", "new_did_probation_period_sec"],
+      "additionalProperties": false,
+      "properties": {
+        "min_trusted_peers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "trusted_registry": {
+          "type": "string",
+          "description": "DID or URI of the trusted peer registry"
+        },
+        "untrusted_did_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "new_did_probation_period_sec": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Consolidation": {
+      "type": "object",
+      "description": "Offline learning phase (§7.4)",
+      "required": ["schedule", "runner", "operations", "axiom_store"],
+      "additionalProperties": false,
+      "properties": {
+        "schedule": { "type": "string" },
+        "runner": {
+          "type": "string",
+          "enum": ["conductor", "dedicated_node"]
+        },
+        "model_preference": { "type": "string" },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "lesson_deduplication",
+              "pattern_extraction",
+              "contradiction_detection",
+              "axiom_falsifiability_check",
+              "curiosity_task_generation"
+            ]
+          }
+        },
+        "axiom_store": { "$ref": "#/$defs/AxiomStoreConfig" },
+        "require_signature": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "AxiomStoreConfig": {
+      "type": "object",
+      "description": "Axiom store configuration (§7.4)",
+      "required": ["max_axioms", "falsification_window_days"],
+      "additionalProperties": false,
+      "properties": {
+        "max_axioms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "falsification_window_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "require_consolidation_signature": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "Resilience": {
+      "type": "object",
+      "description": "Retry and circuit breaker policy (§7.5)",
+      "additionalProperties": false,
+      "properties": {
+        "retry": { "$ref": "#/$defs/RetryPolicy" },
+        "circuit_breaker": { "$ref": "#/$defs/CircuitBreaker" }
+      }
+    },
+    "RetryPolicy": {
+      "type": "object",
+      "description": "Retry policy (§7.5.1)",
+      "additionalProperties": false,
+      "properties": {
+        "max_retries_default": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3
+        },
+        "backoff_strategy": {
+          "type": "string",
+          "enum": ["fixed", "linear", "exponential"],
+          "default": "exponential"
+        },
+        "initial_delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 500
+        },
+        "max_delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30000
+        },
+        "retry_budget_per_minute": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 20
+        },
+        "entity_overrides": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "CircuitBreaker": {
+      "type": "object",
+      "description": "Circuit breaker configuration (§7.5.2)",
+      "additionalProperties": false,
+      "properties": {
+        "failure_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "recovery_timeout_sec": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 60
+        },
+        "success_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2
+        },
+        "entity_overrides": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "report_to_gossip": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "Precedence": {
+      "type": "object",
+      "description": "Order of precedence and conflict resolution (§8)",
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Precedence order from highest to lowest priority"
+        }
+      }
+    },
+    "Cognitive": {
+      "type": "object",
+      "description": "Layer 1: Cognitive and intent adaptation (§9)",
+      "additionalProperties": false,
+      "properties": {
+        "context_inspection": { "$ref": "#/$defs/ContextInspection" },
+        "drift_detection": { "$ref": "#/$defs/DriftDetection" }
+      }
+    },
+    "ContextInspection": {
+      "type": "object",
+      "description": "Context inspection and sanitization (§9.1)",
+      "additionalProperties": false,
+      "properties": {
+        "pattern_registry": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PiiPattern" },
+          "description": "PII detection patterns (§9.1.1)"
+        },
+        "jurisdiction_profiles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "runtime_teachable": {
+          "type": "boolean",
+          "default": true
+        },
+        "injection_detection": { "$ref": "#/$defs/InjectionDetection" },
+        "max_input_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_output_chars": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "PiiPattern": {
+      "type": "object",
+      "description": "PII detection pattern entry (§9.1.1)",
+      "required": ["name", "regex", "sensitivity", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "regex": { "type": "string", "format": "regex" },
+        "sensitivity": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["block", "redact", "log"]
+        }
+      }
+    },
+    "InjectionDetection": {
+      "type": "object",
+      "description": "Injection detection configuration (§9.1.2)",
+      "additionalProperties": false,
+      "properties": {
+        "sql_keywords": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "shell_commands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "base64_detection_threshold": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 20
+        },
+        "custom_injection_patterns": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "DriftDetection": {
+      "type": "object",
+      "description": "Semantic drift detection (§9.2)",
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": ["cosine_distance", "embedding_divergence"]
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "sample_interval_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "on_drift_exceeded": {
+          "type": "string",
+          "enum": ["halt_and_report", "request_reanchor", "escalate_to_hitl"]
+        }
+      }
+    },
+    "Execution": {
+      "type": "object",
+      "description": "Layer 2: Execution and tooling adaptation (§10)",
+      "additionalProperties": false,
+      "properties": {
+        "sandbox": { "$ref": "#/$defs/Sandbox" },
+        "tool_risk": { "$ref": "#/$defs/ToolRisk" },
+        "allowed_path": { "$ref": "#/$defs/AllowedPath" }
+      }
+    },
+    "Sandbox": {
+      "type": "object",
+      "description": "Sandbox resource adaptation (§10.1)",
+      "additionalProperties": false,
+      "properties": {
+        "default_limits": { "$ref": "#/$defs/SandboxLimits" },
+        "entity_overrides": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SandboxEntityOverride" }
+        },
+        "adaptive_limits": { "$ref": "#/$defs/AdaptiveLimits" }
+      }
+    },
+    "SandboxLimits": {
+      "type": "object",
+      "description": "Default sandbox resource limits",
+      "additionalProperties": false,
+      "properties": {
+        "memory_limit_mb": { "type": "integer", "minimum": 0 },
+        "cpu_limit_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "timeout_sec": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "SandboxEntityOverride": {
+      "type": "object",
+      "description": "Per-tool sandbox limit override",
+      "additionalProperties": false,
+      "properties": {
+        "tool_pattern": { "type": "string" },
+        "memory_limit_mb": { "type": "integer", "minimum": 0 },
+        "cpu_limit_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "timeout_sec": { "type": "integer", "minimum": 0 },
+        "allowed_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "AdaptiveLimits": {
+      "type": "object",
+      "description": "Feedback-driven limit adjustment (§10.1)",
+      "additionalProperties": false,
+      "properties": {
+        "ram_highwater_action": { "$ref": "#/$defs/AdaptiveLimitAction" },
+        "cpu_spike_action": { "$ref": "#/$defs/AdaptiveLimitAction" },
+        "duration_trending_action": { "$ref": "#/$defs/AdaptiveLimitAction" }
+      }
+    },
+    "AdaptiveLimitAction": {
+      "type": "object",
+      "description": "Adaptive limit trigger-action pair",
+      "additionalProperties": false,
+      "properties": {
+        "trigger_threshold_pct": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "action": {
+          "type": "string",
+          "enum": ["tighten_limit", "log_warning", "quarantine_tool"]
+        },
+        "tighten_factor": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "ToolRisk": {
+      "type": "object",
+      "description": "Tool risk governance (§10.2)",
+      "additionalProperties": false,
+      "properties": {
+        "risk_levels": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RiskLevel" }
+        },
+        "classifications": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ToolClassification" }
+        },
+        "obligations": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/RiskObligation" }
+        },
+        "runtime_promotion": { "$ref": "#/$defs/RuntimePromotion" }
+      }
+    },
+    "RiskLevel": {
+      "type": "object",
+      "required": ["level", "ordinal"],
+      "additionalProperties": false,
+      "properties": {
+        "level": { "type": "string" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "description": { "type": "string" }
+      }
+    },
+    "ToolClassification": {
+      "type": "object",
+      "required": ["tool_pattern", "risk"],
+      "additionalProperties": false,
+      "properties": {
+        "tool_pattern": { "type": "string" },
+        "risk": { "type": "string" },
+        "requires_hitl": { "type": "boolean" },
+        "version_binding": {
+          "type": "string",
+          "enum": ["entity_hash", "semantic_version", "name_only"]
+        }
+      }
+    },
+    "RiskObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sandbox": { "type": "boolean" },
+        "audit_log": { "type": "boolean" },
+        "notify_conductor": { "type": "boolean" },
+        "require_hitl": { "type": "boolean" }
+      }
+    },
+    "RuntimePromotion": {
+      "type": "object",
+      "description": "Feedback-driven risk promotion (§10.2)",
+      "additionalProperties": false,
+      "properties": {
+        "sandbox_violation_promotes_to": { "type": "string" },
+        "consecutive_failure_threshold": { "type": "integer", "minimum": 1 },
+        "promotes_by": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      }
+    },
+    "AllowedPath": {
+      "type": "object",
+      "description": "Allowed-path adaptation (§10.3)",
+      "additionalProperties": false,
+      "properties": {
+        "path_removal_on_violation": {
+          "type": "boolean",
+          "default": true
+        },
+        "path_addition_requires": {
+          "type": "string",
+          "enum": ["hitl_approval", "constitutional_only"]
+        }
+      }
+    },
+    "DataSovereignty": {
+      "type": "object",
+      "description": "Layer 3: Data sovereignty adaptation (§11)",
+      "additionalProperties": false,
+      "properties": {
+        "authorization_cache": { "$ref": "#/$defs/AuthorizationCache" },
+        "reclassification": { "$ref": "#/$defs/Reclassification" }
+      }
+    },
+    "AuthorizationCache": {
+      "type": "object",
+      "description": "Authorization caching (§11.1)",
+      "additionalProperties": false,
+      "properties": {
+        "default_ttl_sec": { "type": "integer", "minimum": 0 },
+        "sensitivity_multipliers": { "$ref": "#/$defs/SensitivityMultipliers" },
+        "max_cache_entries": { "type": "integer", "minimum": 1 },
+        "invalidation_triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["classification_change", "escalation_event", "credential_revocation", "quarantine_event"]
+          }
+        }
+      }
+    },
+    "SensitivityMultipliers": {
+      "type": "object",
+      "description": "Per-sensitivity-level TTL multipliers",
+      "additionalProperties": false,
+      "properties": {
+        "public": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "internal": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "confidential": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "restricted": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "Reclassification": {
+      "type": "object",
+      "description": "Adaptive data reclassification (§11.2)",
+      "additionalProperties": false,
+      "properties": {
+        "pii_frequency_escalation": { "$ref": "#/$defs/PiiFrequencyEscalation" },
+        "context_poisoning_detection": { "type": "object" },
+        "reclassification_scope": {
+          "type": "string",
+          "enum": ["per_task_class", "per_data_source", "per_agent"]
+        }
+      }
+    },
+    "PiiFrequencyEscalation": {
+      "type": "object",
+      "description": "PII frequency-based escalation (§11.2)",
+      "additionalProperties": false,
+      "properties": {
+        "window_sec": { "type": "integer", "minimum": 0 },
+        "threshold_count": { "type": "integer", "minimum": 1 },
+        "escalation_direction": {
+          "type": "string",
+          "const": "up_one_level"
+        },
+        "requires_hitl_above": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"],
+          "default": "confidential"
+        }
+      }
+    },
+    "Network": {
+      "type": "object",
+      "description": "Layer 4: Network and mesh adaptation (§12)",
+      "additionalProperties": false,
+      "properties": {
+        "egress": { "$ref": "#/$defs/Egress" },
+        "peer_routing": { "$ref": "#/$defs/PeerRouting" }
+      }
+    },
+    "Egress": {
+      "type": "object",
+      "description": "Adaptive egress filtering (§12.1)",
+      "additionalProperties": false,
+      "properties": {
+        "dynamic_deny": { "$ref": "#/$defs/DynamicDeny" },
+        "deny_takes_precedence": {
+          "type": "boolean",
+          "const": true
+        },
+        "dynamic_deny_ttl_sec": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "DynamicDeny": {
+      "type": "object",
+      "description": "Dynamic deny entry triggers",
+      "additionalProperties": false,
+      "properties": {
+        "on_connection_failure_count": { "type": "integer", "minimum": 1 },
+        "on_tls_error": { "type": "boolean" },
+        "on_suspicious_response": { "type": "boolean" }
+      }
+    },
+    "PeerRouting": {
+      "type": "object",
+      "description": "Peer routing and delegation (§12.2)",
+      "additionalProperties": false,
+      "properties": {
+        "peer_adaptation_method": { "type": "string" },
+        "delegation_roi_tracking": { "type": "boolean" },
+        "delegation_roi_window_sec": { "type": "integer", "minimum": 0 },
+        "prefer_local_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "Budget": {
+      "type": "object",
+      "description": "Budget and throughput constraints (§13)",
+      "required": ["task_ceiling_usd", "on_exhaustion", "velocity"],
+      "additionalProperties": false,
+      "properties": {
+        "task_ceiling_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "on_exhaustion": {
+          "type": "string",
+          "enum": ["halt_and_report", "degrade_to_cheapest_model", "queue_for_human_approval"]
+        },
+        "degradation_chain": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "alert_threshold_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 80
+        },
+        "velocity": { "$ref": "#/$defs/Velocity" },
+        "per_layer": { "$ref": "#/$defs/PerLayerBudget" },
+        "rate_limiting": { "$ref": "#/$defs/RateLimiting" },
+        "accounting": { "$ref": "#/$defs/Accounting" }
+      }
+    },
+    "Velocity": {
+      "type": "object",
+      "description": "Velocity constraints (§13.2)",
+      "required": ["max_spend_per_minute_usd"],
+      "additionalProperties": false,
+      "properties": {
+        "max_spend_per_minute_usd": { "type": "number", "minimum": 0 },
+        "max_tool_calls_per_minute": { "type": "integer", "minimum": 0 },
+        "max_tokens_per_minute": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "PerLayerBudget": {
+      "type": "object",
+      "description": "Per-layer budget limits (§13.3)",
+      "additionalProperties": false,
+      "properties": {
+        "cognitive": {
+          "type": "object",
+          "properties": { "per_completion_limit_usd": { "type": "number", "minimum": 0 } },
+          "additionalProperties": false
+        },
+        "execution": {
+          "type": "object",
+          "properties": { "per_tool_call_limit_usd": { "type": "number", "minimum": 0 } },
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": { "per_retrieval_limit_usd": { "type": "number", "minimum": 0 } },
+          "additionalProperties": false
+        },
+        "network": {
+          "type": "object",
+          "properties": { "per_delegation_limit_usd": { "type": "number", "minimum": 0 } },
+          "additionalProperties": false
+        }
+      }
+    },
+    "RateLimiting": {
+      "type": "object",
+      "description": "Rate limiting (§13.4)",
+      "additionalProperties": false,
+      "properties": {
+        "global": { "$ref": "#/$defs/RateLimit" },
+        "per_endpoint": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "per_tool": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "max_tracking_entries": { "type": "integer", "minimum": 0 },
+        "tracking_entry_ttl_sec": { "type": "integer", "minimum": 0 },
+        "cleanup_interval_sec": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "RateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests_per_second": { "type": "number", "minimum": 0 },
+        "burst_size": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "Accounting": {
+      "type": "object",
+      "description": "Budget accounting (§13.5)",
+      "additionalProperties": false,
+      "properties": {
+        "trace_id_ref": { "type": "string" },
+        "attribution": {
+          "type": "string",
+          "enum": ["per_agent", "per_task"]
+        },
+        "rollup_window_sec": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "Escalation": {
+      "type": "object",
+      "description": "Cross-layer escalation (§14.1)",
+      "additionalProperties": false,
+      "properties": {
+        "cross_layer_rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EscalationRule" }
+        },
+        "ratchet_direction": {
+          "type": "string",
+          "const": "tighten_only"
+        },
+        "relaxation_requires": {
+          "type": "string",
+          "const": "human_approval"
+        }
+      }
+    },
+    "EscalationRule": {
+      "type": "object",
+      "description": "Escalation trigger-action pair",
+      "required": ["trigger", "actions"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {
+          "type": "object",
+          "required": ["layer", "event"],
+          "additionalProperties": false,
+          "properties": {
+            "layer": { "type": "string" },
+            "event": { "type": "string" }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["target_layer", "action"],
+            "additionalProperties": false,
+            "properties": {
+              "target_layer": { "type": "string" },
+              "action": { "type": "string" },
+              "parameters": { "type": "object" }
+            }
+          }
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "Quarantine": {
+      "type": "object",
+      "description": "Quarantine configuration (§14.2)",
+      "additionalProperties": false,
+      "properties": {
+        "default_ttl_sec": { "type": "integer", "minimum": 0 },
+        "confidence_threshold_for_sticky": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.7
+        },
+        "ttl_formula": { "type": "string" },
+        "sticky_requires": {
+          "type": "string",
+          "const": "human_review"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["tool", "model", "peer", "data_source", "endpoint"]
+          }
+        }
+      }
+    },
+    "Hitl": {
+      "type": "object",
+      "description": "Human-In-The-Loop configuration (§15)",
+      "additionalProperties": false,
+      "properties": {
+        "relaxation": { "$ref": "#/$defs/HitlRelaxation" },
+        "teaching": { "$ref": "#/$defs/HitlTeaching" }
+      }
+    },
+    "HitlRelaxation": {
+      "type": "object",
+      "description": "Ratchet relaxation (§15.1)",
+      "additionalProperties": false,
+      "properties": {
+        "relaxation_conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "type": "string",
+                "enum": ["quarantine", "classification", "budget_ceiling", "risk_level", "drift_threshold"]
+              },
+              "required_credential": { "type": "string" },
+              "required_role": { "type": "string" }
+            }
+          }
+        },
+        "approval_mechanism": {
+          "type": "string",
+          "enum": ["credential_presentation", "signed_command", "interactive_confirmation"]
+        },
+        "audit_requirement": {
+          "type": "string",
+          "const": "always_logged"
+        }
+      }
+    },
+    "HitlTeaching": {
+      "type": "object",
+      "description": "Teaching interface (§15.2)",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "intent_classification": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["instruction", "correction", "reinforcement", "pattern"]
+          }
+        },
+        "policy_cache_write": { "type": "object" }
+      }
+    },
+    "Session": {
+      "type": "object",
+      "description": "Session management (§15.3)",
+      "additionalProperties": false,
+      "properties": {
+        "timeout_bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "absolute_timeout_min_sec": { "type": "integer", "minimum": 0 },
+            "absolute_timeout_max_sec": { "type": "integer", "minimum": 0 },
+            "idle_timeout_max_sec": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "absolute_timeout_sec": { "type": "integer", "minimum": 0 },
+            "idle_timeout_sec": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "sensitivity_proportional": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "idle_timeout_multipliers": { "$ref": "#/$defs/SensitivityMultipliers" }
+          }
+        }
+      }
+    },
+    "StateStorage": {
+      "type": "object",
+      "description": "Learned state storage (§16)",
+      "additionalProperties": false,
+      "properties": {
+        "policy_cache": { "$ref": "#/$defs/StorageBackend" },
+        "prior_distributions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backend": { "type": "string" },
+            "snapshot_interval_sec": { "type": "integer", "minimum": 0 },
+            "snapshot_signed_by": { "type": "string" }
+          }
+        },
+        "axiom_store": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backend": { "type": "string" },
+            "requires_consolidation_signature": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "StorageBackend": {
+      "type": "object",
+      "description": "Storage backend configuration",
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["iroh_content_addressed", "local_encrypted", "external_kv"]
+        },
+        "integrity": {
+          "type": "string",
+          "enum": ["hash_chain", "merkle_verified", "none"]
+        },
+        "encryption_at_rest": { "type": "boolean" }
+      }
+    },
+    "Observability": {
+      "type": "object",
+      "description": "Observability and auditability (§17)",
+      "additionalProperties": false,
+      "properties": {
+        "decision_trace": { "$ref": "#/$defs/DecisionTrace" },
+        "export": { "$ref": "#/$defs/Export" }
+      }
+    },
+    "DecisionTrace": {
+      "type": "object",
+      "description": "DecisionTrace audit log (§17.1)",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "storage": {
+          "type": "string",
+          "const": "append_only"
+        },
+        "retention_days": { "type": "integer", "minimum": 1 },
+        "cryptographic_signing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "signing_required_above_sensitivity": {
+              "type": "string",
+              "enum": ["public", "internal", "confidential", "restricted"],
+              "default": "confidential"
+            },
+            "algorithm": { "type": "string" },
+            "signed_by": { "type": "string" }
+          }
+        }
+      }
+    },
+    "Export": {
+      "type": "object",
+      "description": "Export format configurations (§17.2)",
+      "additionalProperties": false,
+      "properties": {
+        "siem_export": { "$ref": "#/$defs/ExportConfig" },
+        "grc_export": { "$ref": "#/$defs/ExportConfig" },
+        "regulatory_export": { "$ref": "#/$defs/ExportConfig" }
+      }
+    },
+    "ExportConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json_lines", "csv", "otel_traces", "custom"]
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["realtime", "hourly", "daily"]
+        },
+        "filter": { "type": "object" }
+      }
+    },
+    "DecisionTraceEntry": {
+      "type": "object",
+      "description": "Schema for a single DecisionTrace entry (§17.1.1)",
+      "required": ["trace_id", "timestamp", "task_id", "agent_id", "layer", "event_type", "decision", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": { "type": "string", "format": "uuid" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "task_id": { "type": "string", "format": "uuid" },
+        "agent_id": { "type": "string" },
+        "layer": {
+          "type": "string",
+          "enum": ["cognitive", "execution", "data_sovereignty", "network"]
+        },
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "routing_decision",
+            "quality_gate",
+            "tool_invocation",
+            "data_access",
+            "delegation",
+            "escalation",
+            "budget_event",
+            "quarantine",
+            "hitl_action"
+          ]
+        },
+        "decision": {
+          "type": "object",
+          "properties": {
+            "chosen": { "type": "string" },
+            "alternatives_considered": { "type": "array", "items": { "type": "string" } },
+            "selection_method": {
+              "type": "string",
+              "enum": ["thompson_sampling", "policy_cache", "static_rule", "hitl_override"]
+            },
+            "prior_state": { "$ref": "#/$defs/BetaPrior" },
+            "posterior_state": { "$ref": "#/$defs/BetaPrior" }
+          }
+        },
+        "outcome": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "quality_score": { "type": "number" },
+            "latency_ms": { "type": "integer" },
+            "cost_usd": { "type": "number" },
+            "error_type": { "type": ["string", "null"] }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "remaining_task_budget_usd": { "type": "number" },
+            "spend_this_event_usd": { "type": "number" },
+            "layer_spend_cumulative_usd": { "type": "number" },
+            "velocity_spend_this_minute_usd": { "type": "number" }
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "properties": {
+            "triggered": { "type": "boolean" },
+            "source_layer": { "type": ["string", "null"] },
+            "target_layers": { "type": "array", "items": { "type": "string" } },
+            "action_taken": { "type": ["string", "null"] },
+            "confidence": { "type": ["number", "null"] }
+          }
+        },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "prior_updated": { "type": "boolean" },
+            "policy_cache_written": { "type": "boolean" },
+            "gossip_propagated": { "type": "boolean" },
+            "lesson_key": { "type": ["string", "null"] }
+          }
+        },
+        "cryptographic_proofs": {
+          "type": "object",
+          "properties": {
+            "agent_signature": { "type": ["string", "null"] },
+            "vc_presented": { "type": ["string", "null"] },
+            "human_approval_signature": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  }
+}
