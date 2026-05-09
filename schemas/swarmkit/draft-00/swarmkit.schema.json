@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/swarmkit/draft-00/swarmkit.schema.json",
+  "title": "SwarmKit Core Definitions",
+  "description": "Shared $defs for SwarmKit draft-00 schemas",
+  "$defs": {
+    "Did": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:.+$",
+      "description": "Decentralized Identifier (DIF DID), e.g. 'did:web:arkavo.net'"
+    },
+    "RFC3339": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 / ISO 8601 timestamp"
+    },
+    "Semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Semantic version per semver.org"
+    },
+    "Nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$",
+      "description": "128-bit nonce, base64url-encoded without padding (22 chars). Replay defense per spec §10.1"
+    },
+    "Base64Url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Unpadded base64url (RFC 4648 §5)"
+    },
+    "Multihash": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+:[A-Za-z0-9_-]+$",
+      "description": "Algorithm-prefixed digest, e.g. 'blake3:...' or 'sha256:...'"
+    },
+    "KitId": {
+      "$ref": "#/$defs/Multihash",
+      "description": "BLAKE3 hash of the canonical SwarmKit manifest (excluding kit.id and provenance.signatures). Spec §9.1"
+    },
+    "FlightId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID identifying a single SwarmFlight execution"
+    },
+    "RoleId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "Role identifier, unique within a SwarmKit"
+    },
+    "RoleType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Role archetype per spec §4.3. Free-form string; SHOULD use a value from Appendix C (scribe, historian, planner, critic, operator, specialist) but MAY define domain-specific values."
+    },
+    "Topology": {
+      "type": "string",
+      "enum": ["mesh", "pipeline", "hub-spoke", "hierarchical"],
+      "description": "Coordination topology per spec §4.4"
+    },
+    "Protocol": {
+      "type": "string",
+      "const": "a2a-jsonrpc-2.0",
+      "description": "Inter-agent coordination protocol (only A2A JSON-RPC 2.0 in v1.0)"
+    },
+    "RoutingStrategy": {
+      "type": "string",
+      "enum": ["thompson_sampling", "round_robin", "critic_directed", "static"],
+      "description": "Routing strategy for coordination per spec §4.4"
+    },
+    "AuthMode": {
+      "type": "string",
+      "enum": ["delegated", "passthrough", "none"],
+      "description": "MCP tool grant auth mode per spec §7.1 step 8d"
+    },
+    "InputType": {
+      "type": "string",
+      "enum": ["text", "json", "binary", "tdf-ref", "iroh-ticket"],
+      "description": "Input or deliverable payload type per spec §4.2"
+    },
+    "ArpRule": {
+      "type": "string",
+      "enum": ["allOf", "anyOf", "hierarchy"],
+      "description": "TDF Attribute Release Policy combinator per spec §4.3"
+    },
+    "SkillSource": {
+      "type": "string",
+      "enum": ["inline", "registry", "tdf-ref"],
+      "description": "Where the skill body is sourced from per spec §8.1"
+    },
+    "ModelFamily": {
+      "type": "string",
+      "enum": ["qwen3", "ministral-3", "gemma-4", "llama-3", "custom"],
+      "description": "Model family per spec §5"
+    },
+    "ModelBackend": {
+      "type": "string",
+      "enum": ["llama.cpp", "mlx", "vllm", "custom"],
+      "description": "Inference backend per spec §5"
+    },
+    "ToolUseOnError": {
+      "type": "string",
+      "enum": ["retry", "skip", "abort"]
+    },
+    "OnTimeout": {
+      "type": "string",
+      "enum": ["retry", "abort", "fallback"]
+    },
+    "OnFailure": {
+      "type": "string",
+      "enum": ["retry", "abort", "escalate", "partial"],
+      "description": "Per-flight failure handling per spec §4.7"
+    },
+    "Persistence": {
+      "type": "string",
+      "enum": ["ephemeral", "session", "kit"],
+      "description": "Context persistence scope per spec §5"
+    },
+    "LogLevel": {
+      "type": "string",
+      "enum": ["trace", "debug", "info", "warn", "error"]
+    },
+    "Sandbox": {
+      "type": "string",
+      "enum": ["process", "container", "vm", "none"],
+      "description": "Specialist isolation level per spec §5"
+    },
+    "ContextStore": {
+      "type": "string",
+      "enum": ["shared", "per-role"]
+    },
+    "CompactionStrategy": {
+      "type": "string",
+      "enum": ["tool_result", "summary", "none"]
+    },
+    "Author": {
+      "type": "object",
+      "properties": {
+        "did": { "$ref": "#/$defs/Did" },
+        "name": { "type": "string" }
+      },
+      "required": ["did"],
+      "additionalProperties": false
+    },
+    "KitMetadata": {
+      "type": "object",
+      "description": "The `kit` block in §4.1",
+      "properties": {
+        "id": { "$ref": "#/$defs/KitId" },
+        "name": { "type": "string" },
+        "version": { "$ref": "#/$defs/Semver" },
+        "description": { "type": "string" },
+        "authors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Author" },
+          "minItems": 1
+        },
+        "created": { "$ref": "#/$defs/RFC3339" },
+        "expires": { "$ref": "#/$defs/RFC3339" },
+        "nonce": { "$ref": "#/$defs/Nonce" }
+      },
+      "required": ["id", "name", "version", "authors", "created", "nonce"],
+      "additionalProperties": false
+    },
+    "Objective": {
+      "type": "object",
+      "properties": {
+        "goal": { "type": "string", "minLength": 1 },
+        "success_criteria": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["goal", "success_criteria"],
+      "additionalProperties": false
+    },
+    "InputSpec": {
+      "type": "object",
+      "description": "Per spec §4.2",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/InputType" },
+        "schema": {
+          "description": "Inline JSON Schema or URI reference",
+          "oneOf": [
+            { "type": "object" },
+            { "type": "string", "format": "uri" }
+          ]
+        },
+        "required": { "type": "boolean" },
+        "classification": { "type": "string" }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "DeliverableSpec": {
+      "type": "object",
+      "description": "Per spec §4.2 (same shape as InputSpec, minus `required`)",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/InputType" },
+        "schema": {
+          "oneOf": [
+            { "type": "object" },
+            { "type": "string", "format": "uri" }
+          ]
+        },
+        "classification": { "type": "string" }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "Skill": {
+      "type": "object",
+      "description": "Skill reference embedded in a role per spec §4.3 / §8.1",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "$ref": "#/$defs/Semver" },
+        "source": { "$ref": "#/$defs/SkillSource" },
+        "payload": {
+          "description": "Inline body when source=inline, otherwise a reference"
+        }
+      },
+      "required": ["id", "version", "source"],
+      "allOf": [
+        {
+          "if": { "properties": { "source": { "const": "inline" } } },
+          "then": { "required": ["payload"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "McpToolGrant": {
+      "type": "object",
+      "description": "MCP server + tool allowlist + auth mode per spec §4.3 / §7.2",
+      "properties": {
+        "server": { "type": "string", "format": "uri" },
+        "tools": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Explicit tool allowlist; '*' SHOULD NOT be used per spec §4.3"
+        },
+        "auth": { "$ref": "#/$defs/AuthMode" }
+      },
+      "required": ["server", "tools", "auth"],
+      "additionalProperties": false
+    },
+    "TdfAttributeReleasePolicy": {
+      "type": "object",
+      "description": "Role-scoped TDF ARP per spec §4.3 / §6.4",
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "minItems": 1
+        },
+        "rule": { "$ref": "#/$defs/ArpRule" }
+      },
+      "required": ["attributes", "rule"],
+      "additionalProperties": false
+    },
+    "Handoff": {
+      "type": "object",
+      "properties": {
+        "to": { "$ref": "#/$defs/RoleId" },
+        "on": {
+          "type": "string",
+          "description": "Condition expression, e.g. \"result.status == 'needs_review'\" or \"always\""
+        }
+      },
+      "required": ["to", "on"],
+      "additionalProperties": false
+    },
+    "ContextScope": {
+      "type": "object",
+      "properties": {
+        "can_read": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/RoleId" },
+              { "type": "string", "const": "self" }
+            ]
+          }
+        },
+        "can_write": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/RoleId" },
+              { "type": "string", "const": "self" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "CoordinationSpec": {
+      "type": "object",
+      "description": "Per spec §4.4",
+      "properties": {
+        "topology": { "$ref": "#/$defs/Topology" },
+        "protocol": { "$ref": "#/$defs/Protocol" },
+        "routing": {
+          "type": "object",
+          "properties": {
+            "strategy": { "$ref": "#/$defs/RoutingStrategy" },
+            "parameters": {
+              "description": "Strategy-specific opaque parameters"
+            }
+          },
+          "required": ["strategy"],
+          "additionalProperties": false
+        },
+        "context_sharing": {
+          "type": "object",
+          "properties": {
+            "store": { "$ref": "#/$defs/ContextStore" },
+            "compaction": {
+              "type": "object",
+              "properties": {
+                "strategy": { "$ref": "#/$defs/CompactionStrategy" }
+              },
+              "additionalProperties": true,
+              "description": "Tool-result compaction strategy; opaque parameters per implementation"
+            }
+          },
+          "required": ["store"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["topology", "routing"],
+      "additionalProperties": false
+    },
+    "ConstraintsSpec": {
+      "type": "object",
+      "description": "Per spec §4.5",
+      "properties": {
+        "global_budget": {
+          "type": "object",
+          "properties": {
+            "max_wallclock_seconds": { "type": "integer", "minimum": 0 },
+            "max_total_tokens": { "type": "integer", "minimum": 0 },
+            "max_cost_usd": { "type": "number", "minimum": 0 }
+          },
+          "required": ["max_wallclock_seconds", "max_total_tokens", "max_cost_usd"],
+          "additionalProperties": false
+        },
+        "data_classifications": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "jurisdiction": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "description": "ISO 3166 alpha-2 country codes"
+        },
+        "network": {
+          "type": "object",
+          "properties": {
+            "egress_allowed": { "type": "boolean" },
+            "egress_allowlist": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["egress_allowed", "egress_allowlist"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["global_budget", "data_classifications", "network"],
+      "additionalProperties": false
+    },
+    "EvaluationDimension": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["name", "weight", "threshold"],
+      "additionalProperties": false
+    },
+    "EvaluationSpec": {
+      "type": "object",
+      "description": "Per spec §4.6",
+      "properties": {
+        "rubric": {
+          "type": "object",
+          "properties": {
+            "reference": { "type": "string" },
+            "dimensions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/EvaluationDimension" },
+              "minItems": 1
+            }
+          },
+          "required": ["dimensions"],
+          "additionalProperties": false
+        },
+        "critic_role": { "$ref": "#/$defs/RoleId" },
+        "sample_size": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["rubric", "critic_role"],
+      "additionalProperties": false
+    },
+    "CompletionSpec": {
+      "type": "object",
+      "description": "Per spec §4.7",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "on_failure": { "$ref": "#/$defs/OnFailure" },
+        "max_retries": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["rules", "on_failure", "max_retries"],
+      "additionalProperties": false
+    },
+    "C2paAssertion": {
+      "type": "object",
+      "properties": {
+        "assertion_uri": { "type": "string", "format": "uri" },
+        "digest": { "$ref": "#/$defs/Multihash" }
+      },
+      "required": ["assertion_uri", "digest"],
+      "additionalProperties": false
+    },
+    "Signature": {
+      "type": "object",
+      "properties": {
+        "signer_did": { "$ref": "#/$defs/Did" },
+        "algorithm": {
+          "type": "string",
+          "enum": ["ed25519", "es256", "es384", "rs256"]
+        },
+        "signature": { "$ref": "#/$defs/Base64Url" }
+      },
+      "required": ["signer_did", "algorithm", "signature"],
+      "additionalProperties": false
+    },
+    "ProvenanceSpec": {
+      "type": "object",
+      "description": "Per spec §4.8",
+      "properties": {
+        "c2pa_assertions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/C2paAssertion" }
+        },
+        "signatures": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Signature" },
+          "minItems": 1
+        }
+      },
+      "required": ["signatures"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/swarmkit/draft-00/agent-provisioning.schema.json",
+  "title": "SwarmKit agent_provisioning",
+  "description": "Per-role provisioning block governing model selection, inference parameters, budgets, tool/MCP allowlists, isolation, and failure handling. Per spec §5. Distinct from the TDF Attribute Release Policy (governs data) and from the companion Agent Runtime Policy spec (governs adaptation of a running specialist). Per §5.2, omitted fields have orchestrator-applied defaults; this schema therefore requires only fields that have no sensible default. Cross-block validations from §5.1 (e.g. inference.max_tokens vs. model context window, budget.* vs. constraints.global_budget.*, network_egress vs. constraints.network.egress_allowed) are not expressible in pure JSON Schema and are the orchestrator's responsibility.",
+  "type": "object",
+  "properties": {
+    "model": { "$ref": "#/$defs/Model" },
+    "inference": { "$ref": "#/$defs/Inference" },
+    "budget": { "$ref": "#/$defs/Budget" },
+    "tool_use": { "$ref": "#/$defs/ToolUse" },
+    "context": { "$ref": "#/$defs/Context" },
+    "observability": { "$ref": "#/$defs/Observability" },
+    "isolation": { "$ref": "#/$defs/Isolation" },
+    "failure": { "$ref": "#/$defs/Failure" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Model": {
+      "type": "object",
+      "properties": {
+        "family": { "$ref": "swarmkit.schema.json#/$defs/ModelFamily" },
+        "size": {
+          "type": "string",
+          "description": "e.g. '3B', '7B', '26B-MoE'"
+        },
+        "quantization": {
+          "type": "string",
+          "description": "e.g. 'Q4_K_M', 'F16', 'MXFP4'"
+        },
+        "backend": { "$ref": "swarmkit.schema.json#/$defs/ModelBackend" },
+        "fallback": {
+          "type": "object",
+          "description": "Used if primary unavailable",
+          "properties": {
+            "family": { "$ref": "swarmkit.schema.json#/$defs/ModelFamily" },
+            "size": { "type": "string" }
+          },
+          "required": ["family"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["family"],
+      "additionalProperties": false
+    },
+    "Inference": {
+      "type": "object",
+      "properties": {
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Per-call ceiling; MUST NOT exceed model context window minus prompt overhead (§5.1 — orchestrator-enforced)"
+        },
+        "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+        "top_p": { "type": "number", "minimum": 0, "maximum": 1 },
+        "top_k": { "type": "integer", "minimum": 0 },
+        "thinking": {
+          "type": "boolean",
+          "description": "Extended thinking on/off"
+        },
+        "stop_sequences": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "seed": {
+          "type": "integer",
+          "description": "For deterministic decoding"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Budget": {
+      "type": "object",
+      "description": "Per-flight budget; each field MUST be ≤ corresponding constraints.global_budget.* (§5.1, orchestrator-enforced)",
+      "properties": {
+        "max_inference_calls": { "type": "integer", "minimum": 0 },
+        "max_wallclock_ms": { "type": "integer", "minimum": 0 },
+        "max_total_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Input + output cumulative"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ToolUse": {
+      "type": "object",
+      "properties": {
+        "max_calls": { "type": "integer", "minimum": 0 },
+        "max_parallel": { "type": "integer", "minimum": 0 },
+        "on_error": { "$ref": "swarmkit.schema.json#/$defs/ToolUseOnError" },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_attempts": { "type": "integer", "minimum": 0 },
+            "backoff_ms": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "Context": {
+      "type": "object",
+      "properties": {
+        "max_context_tokens": { "type": "integer", "minimum": 1 },
+        "kv_cache_id": {
+          "type": "string",
+          "description": "arkavo-kv-cache slot reference; flight-scoped unless persistence != 'ephemeral'"
+        },
+        "compaction_strategy": { "$ref": "swarmkit.schema.json#/$defs/CompactionStrategy" },
+        "persistence": { "$ref": "swarmkit.schema.json#/$defs/Persistence" }
+      },
+      "additionalProperties": false
+    },
+    "Observability": {
+      "type": "object",
+      "properties": {
+        "trace_required": { "type": "boolean" },
+        "log_level": { "$ref": "swarmkit.schema.json#/$defs/LogLevel" },
+        "metrics_endpoint": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    },
+    "Isolation": {
+      "type": "object",
+      "properties": {
+        "sandbox": { "$ref": "swarmkit.schema.json#/$defs/Sandbox" },
+        "fs_writable": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "network_egress": {
+          "type": "boolean",
+          "description": "MUST be denied if constraints.network.egress_allowed is false (§5.1, orchestrator-enforced)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Failure": {
+      "type": "object",
+      "properties": {
+        "on_timeout": { "$ref": "swarmkit.schema.json#/$defs/OnTimeout" },
+        "fallback_role": { "$ref": "swarmkit.schema.json#/$defs/RoleId" },
+        "circuit_breaker": {
+          "type": "object",
+          "properties": {
+            "threshold": { "type": "integer", "minimum": 0 },
+            "window_ms": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

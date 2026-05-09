@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/swarmkit/draft-00/manifest.schema.json",
+  "title": "SwarmKit Manifest",
+  "description": "Top-level SwarmKit manifest — the cleartext document inside the TDF payload (§4.1, §4.3). Per spec §4 the manifest MUST be canonicalized (sorted keys, UTF-8, LF, no trailing whitespace) before hashing or signing.",
+  "type": "object",
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "SwarmKit specification version this manifest conforms to. Orchestrators MUST refuse manifests where the major spec_version differs from their supported set (§9.4)"
+    },
+    "kit": { "$ref": "swarmkit.schema.json#/$defs/KitMetadata" },
+    "objective": { "$ref": "swarmkit.schema.json#/$defs/Objective" },
+    "inputs": {
+      "type": "array",
+      "items": { "$ref": "swarmkit.schema.json#/$defs/InputSpec" }
+    },
+    "deliverables": {
+      "type": "array",
+      "items": { "$ref": "swarmkit.schema.json#/$defs/DeliverableSpec" }
+    },
+    "roles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RoleSpec" },
+      "minItems": 1,
+      "description": "MUST contain at least one role per §4.1"
+    },
+    "coordination": { "$ref": "swarmkit.schema.json#/$defs/CoordinationSpec" },
+    "constraints": { "$ref": "swarmkit.schema.json#/$defs/ConstraintsSpec" },
+    "evaluation": { "$ref": "swarmkit.schema.json#/$defs/EvaluationSpec" },
+    "completion": { "$ref": "swarmkit.schema.json#/$defs/CompletionSpec" },
+    "provenance": { "$ref": "swarmkit.schema.json#/$defs/ProvenanceSpec" }
+  },
+  "required": [
+    "spec_version",
+    "kit",
+    "objective",
+    "inputs",
+    "deliverables",
+    "roles",
+    "coordination",
+    "constraints",
+    "completion",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "RoleSpec": {
+      "type": "object",
+      "description": "Per spec §4.3",
+      "properties": {
+        "id": { "$ref": "swarmkit.schema.json#/$defs/RoleId" },
+        "role_type": { "$ref": "swarmkit.schema.json#/$defs/RoleType" },
+        "description": { "type": "string" },
+        "agent_provisioning": { "$ref": "agent-provisioning.schema.json" },
+        "skills": {
+          "type": "array",
+          "items": { "$ref": "swarmkit.schema.json#/$defs/Skill" }
+        },
+        "mcp_tools": {
+          "type": "array",
+          "items": { "$ref": "swarmkit.schema.json#/$defs/McpToolGrant" }
+        },
+        "tdf_attribute_release_policy": { "$ref": "swarmkit.schema.json#/$defs/TdfAttributeReleasePolicy" },
+        "handoffs": {
+          "type": "array",
+          "items": { "$ref": "swarmkit.schema.json#/$defs/Handoff" }
+        },
+        "context_scope": { "$ref": "swarmkit.schema.json#/$defs/ContextScope" }
+      },
+      "required": ["id", "role_type", "agent_provisioning"],
+      "additionalProperties": false
+    }
+  }
+}

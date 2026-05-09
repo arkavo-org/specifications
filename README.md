@@ -122,6 +122,25 @@ Wire format: `application/arp+json` (JSON canonical), `.arp.toml` (authoring)
 
 ---
 
+### swarmkit/
+
+**SwarmKit: Multi-Agent Work Packaging Format**
+
+A SwarmKit is a portable, signed, TDF-encrypted package that defines coordinated work for a group of hyper-specialized AI agents. A single-role SwarmKit with no handoffs reduces to a skill. SwarmKits are decrypted by an orchestrator agent which delegates role-scoped configuration — TDF Attribute Release Policies, skills, MCP tool grants, and an `agent_provisioning` block — to each specialist before execution. Execution is a SwarmFlight. SwarmKit's `agent_provisioning` block hands off to the companion [Agent Runtime Policy](agent-runtime-policy/arp-spec-draft-00.md) at SwarmFlight start: SwarmKit provisions, ARP adapts.
+
+- **Manifest Schema**: Objective, roles, coordination topology, evaluation rubric, completion rules
+- **TDF Encryption**: OpenTDF envelope with orchestrator-gated key release via KAS
+- **Role-Scoped Delegation**: Per-role TDF ARPs, signed skills, scoped MCP grants
+- **Coordination**: A2A JSON-RPC 2.0 over mesh / pipeline / hub-spoke / hierarchical topologies
+
+Wire format: `application/vnd.arkavo.swarmkit+yaml` (manifest), `.swarmkit.tdf` (distributable)
+
+**Latest Draft**: [swarmkit-spec-draft-00](swarmkit/swarmkit-spec-draft-00.md)
+
+**JSON Schemas**: [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/)
+
+---
+
 ## JSON Schemas
 
 Machine-readable schema definitions for protocol validation:
@@ -130,6 +149,7 @@ Machine-readable schema definitions for protocol validation:
 |---------------|------------------|
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
 | Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
+| SwarmKit | [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/) |
 
 ## License
 
