@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/model-attestation.schema.json",
+  "title": "AIA Model Attestation",
+  "description": "Model Attestation block per AIA spec §5. Evidence and verified claims about the model weights a subject is executing. Embedded in an Agent Identity Document; also validatable standalone.",
+  "type": "object",
+  "properties": {
+    "model": { "$ref": "aia.schema.json#/$defs/ModelInfo" },
+    "weights": { "$ref": "#/$defs/Weights" },
+    "evidence": { "$ref": "#/$defs/Evidence" }
+  },
+  "required": ["model", "weights", "evidence"],
+  "additionalProperties": false,
+  "$defs": {
+    "Weights": {
+      "type": "object",
+      "description": "Weight content addressing. AIA spec §5.2.",
+      "properties": {
+        "digest_algorithm": {
+          "type": "string",
+          "const": "blake3",
+          "description": "AIA reuses SwarmKit's BLAKE3 content addressing; no other algorithm is defined."
+        },
+        "digest": {
+          "$ref": "aia.schema.json#/$defs/Blake3Digest",
+          "description": "Weight content address. For sharded layout, equals merkle_root. AIA spec §5.2.1."
+        },
+        "shard_layout": {
+          "type": "string",
+          "enum": ["single", "sharded"]
+        },
+        "merkle_root": {
+          "oneOf": [
+            { "$ref": "aia.schema.json#/$defs/Blake3Digest" },
+            { "type": "null" }
+          ],
+          "description": "BLAKE3 Merkle root over per-shard digests sorted by shard index. Required (non-null) iff shard_layout is 'sharded'."
+        },
+        "artifact_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of weight artifacts hashed."
+        }
+      },
+      "required": ["digest_algorithm", "digest", "shard_layout", "merkle_root", "artifact_count"],
+      "additionalProperties": false,
+      "if": {
+        "properties": { "shard_layout": { "const": "sharded" } }
+      },
+      "then": {
+        "properties": { "merkle_root": { "$ref": "aia.schema.json#/$defs/Blake3Digest" } }
+      },
+      "else": {
+        "properties": { "merkle_root": { "type": "null" } }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "description": "Attestation evidence. RATS-aligned (RFC 9334). AIA spec §5.4.",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["rats-software", "rats-hardware"],
+          "description": "'rats-software' is a software-only measurement; 'rats-hardware' chains to a hardware root of trust."
+        },
+        "produced_by": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier and version of the Model Attestor, e.g. 'arkavo-model-attestor/0.1.0'."
+        },
+        "produced_at": { "$ref": "aia.schema.json#/$defs/RFC3339" },
+        "nonce": { "$ref": "aia.schema.json#/$defs/Nonce" },
+        "claims_digest": {
+          "$ref": "aia.schema.json#/$defs/Blake3Digest",
+          "description": "BLAKE3 of the JCS-canonical model + weights blocks."
+        },
+        "hardware_evidence": {
+          "oneOf": [
+            { "$ref": "aia.schema.json#/$defs/Base64Url" },
+            { "type": "null" }
+          ],
+          "description": "Opaque base64url RATS evidence blob (TPM quote, SEV-SNP report, etc.). Required (non-null) iff format is 'rats-hardware'."
+        }
+      },
+      "required": ["format", "produced_by", "produced_at", "nonce", "claims_digest", "hardware_evidence"],
+      "additionalProperties": false,
+      "if": {
+        "properties": { "format": { "const": "rats-hardware" } }
+      },
+      "then": {
+        "properties": { "hardware_evidence": { "$ref": "aia.schema.json#/$defs/Base64Url" } }
+      },
+      "else": {
+        "properties": { "hardware_evidence": { "type": "null" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/aia.schema.json",
+  "title": "AIA Core Definitions",
+  "description": "Shared $defs for Agent Identity Attestation (AIA) draft-00 schemas. See agent-identity-attestation/draft-arkavo-aia-00.md.",
+  "$defs": {
+    "AiaSpec": {
+      "$ref": "#/$defs/Semver",
+      "description": "Version of the AIA specification an AID conforms to. AIA spec §4.2."
+    },
+    "Did": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:.+$",
+      "description": "Decentralized Identifier (DIF DID), e.g. 'did:web:arkavo.net'"
+    },
+    "SpiffeId": {
+      "type": "string",
+      "pattern": "^spiffe://[^/]+/.+$",
+      "description": "SPIFFE ID: spiffe://<trust-domain>/<path>. AIA spec §7.3."
+    },
+    "RFC3339": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 / ISO 8601 timestamp with explicit timezone"
+    },
+    "Semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Semantic version per semver.org"
+    },
+    "Nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$",
+      "description": "128-bit nonce, base64url-encoded without padding (22 chars). Replay defense per AIA spec §10.4."
+    },
+    "Base64Url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Unpadded base64url (RFC 4648 §5)"
+    },
+    "Multihash": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+:[A-Za-z0-9_-]+$",
+      "description": "Algorithm-prefixed digest, e.g. 'blake3:...'"
+    },
+    "Blake3Digest": {
+      "type": "string",
+      "pattern": "^blake3:[A-Za-z0-9_-]+$",
+      "description": "BLAKE3 digest, 'blake3:' followed by base64url. AIA reuses SwarmKit's BLAKE3 content addressing (AIA spec §4.12, §5.2)."
+    },
+    "FlightId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID identifying a single SwarmFlight execution. Equals the SwarmKit delegation envelope flight_id."
+    },
+    "RoleId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "Role identifier, unique within a SwarmKit"
+    },
+    "RoleType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Role archetype. Free-form per SwarmKit §4.3 Appendix C; AIA adds the recommended value 'identity_attestor' (AIA spec §1.3)."
+    },
+    "Jwk": {
+      "type": "object",
+      "description": "Public JSON Web Key for proof-of-possession. AIA spec §4.6. The value 'none' MUST NOT be used and symmetric algorithms MUST NOT be used.",
+      "properties": {
+        "kty": { "type": "string", "enum": ["OKP", "EC"] },
+        "crv": { "type": "string", "enum": ["Ed25519", "P-256", "P-384"] },
+        "x": { "$ref": "#/$defs/Base64Url" },
+        "y": { "$ref": "#/$defs/Base64Url", "description": "Required for EC keys; absent for OKP." },
+        "alg": { "type": "string", "enum": ["EdDSA", "ES256", "ES384"] }
+      },
+      "required": ["kty", "crv", "x", "alg"],
+      "additionalProperties": true
+    },
+    "ModelInfo": {
+      "type": "object",
+      "description": "Model identity: family, parameter size, quantization. Mirrors SwarmKit agent_provisioning.model so an AID can be checked against the kit. AIA spec §5.2.",
+      "properties": {
+        "family": { "type": "string", "minLength": 1, "description": "e.g. 'gemma-4', 'qwen3', 'ministral-3'" },
+        "size": { "type": "string", "minLength": 1, "description": "e.g. '26B-MoE', '7B'" },
+        "quantization": { "type": "string", "minLength": 1, "description": "e.g. 'Q4_K_M', 'MXFP4', 'F16'" }
+      },
+      "required": ["family", "size", "quantization"],
+      "additionalProperties": false
+    }
+  }
+}

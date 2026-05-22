@@ -135,9 +135,30 @@ A SwarmKit is a portable, signed, TDF-encrypted package that defines coordinated
 
 Wire format: `application/vnd.arkavo.swarmkit+yaml` (manifest), `.swarmkit.tdf` (distributable)
 
-**Latest Draft**: [swarmkit-spec-draft-00](swarmkit/swarmkit-spec-draft-00.md)
+**Latest Draft**: [swarmkit-spec-draft-01](swarmkit/swarmkit-spec-draft-01.md)
 
 **JSON Schemas**: [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/)
+
+---
+
+### agent-identity-attestation/
+
+**Agent Identity Attestation (AIA): Attested Identity for Multi-Agent Meshes**
+
+AIA specifies how the identity of an AI agent is issued, attested, and verified independently of the agent that orchestrates its work. It defines a sixth SwarmKit mesh role — the **Identity Attestor** — alongside Scribe, Historian, Planner, Critic, and Operator, and closes the foot-gun in which a SwarmKit orchestrator implicitly mints the identities it delegates to:
+
+- **Agent Identity Document (AID)**: A signed, content-addressed record binding an agent to an attested model/runtime, an owner principal, and one SwarmFlight role — carrying no authorization
+- **Model Attestation Profile**: BLAKE3 weight digests, RATS-aligned evidence, and a SPIFFE/SPIRE-compatible `arkavo` workload selector vocabulary
+- **WIMSE Interoperability**: AID ↔ Workload Identity Token / Certificate mappings; `did:web` ⇄ `spiffe://`
+- **CAWG Agent Identity Assertion**: A `cawg.agent_identity` C2PA assertion attributing produced content to an attested agent
+
+Wire format: `application/vnd.arkavo.aid+json`
+
+**Latest Draft**: [draft-arkavo-aia-00](agent-identity-attestation/draft-arkavo-aia-00.md)
+
+**Companion Review**: [WIMSE Alignment Review of SwarmKit](agent-identity-attestation/wimse-swarmkit-alignment-draft-00.md)
+
+**JSON Schemas**: [schemas/agent-identity-attestation/draft-00/](schemas/agent-identity-attestation/draft-00/)
 
 ---
 
@@ -150,6 +171,7 @@ Machine-readable schema definitions for protocol validation:
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
 | Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
 | SwarmKit | [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/) |
+| Agent Identity Attestation | [schemas/agent-identity-attestation/draft-00/](schemas/agent-identity-attestation/draft-00/) |
 
 ## License
 
