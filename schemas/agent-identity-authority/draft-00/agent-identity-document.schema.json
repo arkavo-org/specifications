@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/agent-identity-document.schema.json",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/agent-identity-document.schema.json",
   "title": "Agent Identity Document (AID)",
-  "description": "An Agent Identity Attestation (AIA) Agent Identity Document per draft-arkavo-aia-00 §4. A signed, content-addressed record binding an agent to an attested model/runtime, an owner, and a key. Identifies a durable agent by default; flight_binding is present only for ephemeral flight-scoped credentials. An AID states facts; it carries no authorization (spec §3.2 N1-N5, §3.5).",
+  "description": "An Agent Identity Authority (AIA) Agent Identity Document per draft-arkavo-aia-00 §4. A signed, content-addressed record binding an agent to an attested model/runtime, an owner, and a key. Identifies a durable agent by default; flight_binding is present only for ephemeral flight-scoped credentials. An AID states facts; it carries no authorization (spec §3.2 N1-N5, §3.5).",
   "type": "object",
   "properties": {
     "aia_spec": { "$ref": "aia.schema.json#/$defs/AiaSpec" },

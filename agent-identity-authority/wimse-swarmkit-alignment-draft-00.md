@@ -8,7 +8,7 @@
 | **License**      | Apache 2.0                                                       |
 | **Reviews**      | SwarmKit `swarmkit/swarmkit-spec-draft-01.md` (spec_version 1.1.0)|
 | **Against**      | `draft-ietf-wimse-arch-07`, `draft-ietf-wimse-workload-creds-00`  |
-| **Companion to** | Agent Identity Attestation (AIA) `draft-arkavo-aia-00`           |
+| **Companion to** | Agent Identity Authority (AIA) `draft-arkavo-aia-00`           |
 
 ---
 
@@ -291,7 +291,7 @@ direct OWASP correspondence.
 
 - **SwarmKit** — `swarmkit/swarmkit-spec-draft-01.md` (this repo), the
   document under review.
-- **AIA** — `agent-identity-attestation/draft-arkavo-aia-00.md` (this repo).
+- **AIA** — `agent-identity-authority/draft-arkavo-aia-00.md` (this repo).
 - **Agent Runtime Policy (ARP)** — `agent-runtime-policy/arp-spec-draft-00.md`
   (this repo).
 - **[WIMSE-ARCH]** — `draft-ietf-wimse-arch-07`, Workload Identity in a Multi

@@ -1,4 +1,4 @@
-# Agent Identity Attestation (AIA) Changelog
+# Agent Identity Authority (AIA) Changelog
 
 ## draft-00 (2026-05-22)
 
@@ -38,7 +38,7 @@ SwarmKit draft-01 against `draft-ietf-wimse-arch-07` and
 MCP grant bearer token) and four lower-severity items, with recommendations for
 a SwarmKit draft-02.
 
-JSON Schemas (`schemas/agent-identity-attestation/draft-00/`) for the AID, model
+JSON Schemas (`schemas/agent-identity-authority/draft-00/`) for the AID, model
 attestation, and CAWG assertion. Spec examples validate; negative cases reject.
 
 ### Deferred

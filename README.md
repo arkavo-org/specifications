@@ -141,9 +141,9 @@ Wire format: `application/vnd.arkavo.swarmkit+yaml` (manifest), `.swarmkit.tdf` 
 
 ---
 
-### agent-identity-attestation/
+### agent-identity-authority/
 
-**Agent Identity Attestation (AIA): Attested Identity for Multi-Agent Meshes**
+**Agent Identity Authority (AIA): Attested Identity for Multi-Agent Meshes**
 
 AIA specifies a dedicated, upstream authority for AI agent identity — the **Agent Identity Authority** — whose only responsibility is to issue and attest agent identity. It does not assign work, grant resource access, make ABAC decisions, delegate authority, or release TDF keys. AIA closes the foot-gun in which a SwarmKit orchestrator becomes a super-agent that both creates identities and grants access:
 
@@ -155,11 +155,11 @@ AIA specifies a dedicated, upstream authority for AI agent identity — the **Ag
 
 Wire format: `application/vnd.arkavo.aid+json`
 
-**Latest Draft**: [draft-arkavo-aia-00](agent-identity-attestation/draft-arkavo-aia-00.md)
+**Latest Draft**: [draft-arkavo-aia-00](agent-identity-authority/draft-arkavo-aia-00.md)
 
-**Companion Review**: [WIMSE Alignment Review of SwarmKit](agent-identity-attestation/wimse-swarmkit-alignment-draft-00.md)
+**Companion Review**: [WIMSE Alignment Review of SwarmKit](agent-identity-authority/wimse-swarmkit-alignment-draft-00.md)
 
-**JSON Schemas**: [schemas/agent-identity-attestation/draft-00/](schemas/agent-identity-attestation/draft-00/)
+**JSON Schemas**: [schemas/agent-identity-authority/draft-00/](schemas/agent-identity-authority/draft-00/)
 
 ---
 
@@ -172,7 +172,7 @@ Machine-readable schema definitions for protocol validation:
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
 | Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
 | SwarmKit | [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/) |
-| Agent Identity Attestation | [schemas/agent-identity-attestation/draft-00/](schemas/agent-identity-attestation/draft-00/) |
+| Agent Identity Authority | [schemas/agent-identity-authority/draft-00/](schemas/agent-identity-authority/draft-00/) |
 
 ## License
 

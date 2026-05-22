@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/aia.schema.json",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/aia.schema.json",
   "title": "AIA Core Definitions",
-  "description": "Shared $defs for Agent Identity Attestation (AIA) draft-00 schemas. See agent-identity-attestation/draft-arkavo-aia-00.md.",
+  "description": "Shared $defs for Agent Identity Authority (AIA) draft-00 schemas. See agent-identity-authority/draft-arkavo-aia-00.md.",
   "$defs": {
     "AiaSpec": {
       "$ref": "#/$defs/Semver",

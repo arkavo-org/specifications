@@ -1,12 +1,12 @@
-# Agent Identity Attestation (AIA) JSON Schemas
+# Agent Identity Authority (AIA) JSON Schemas
 
 **Version:** 0.1.0-draft (draft-00)
 **JSON Schema Draft:** 2020-12
-**Specification:** [draft-arkavo-aia-00](../../../agent-identity-attestation/draft-arkavo-aia-00.md)
+**Specification:** [draft-arkavo-aia-00](../../../agent-identity-authority/draft-arkavo-aia-00.md)
 
 ## Overview
 
-JSON Schema definitions for Agent Identity Attestation, enabling validation of
+JSON Schema definitions for Agent Identity Authority, enabling validation of
 Agent Identity Documents (AIDs), Model Attestation blocks, and CAWG agent
 identity assertions.
 
@@ -112,7 +112,7 @@ else:
 
 ## Versioning
 
-- **URL Pattern:** `https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/{VERSION}/`
+- **URL Pattern:** `https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/{VERSION}/`
 - **Current Version:** `draft-00`
 
 When the specification is updated, create a new version directory, copy and

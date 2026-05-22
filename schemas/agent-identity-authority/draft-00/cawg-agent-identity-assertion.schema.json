@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/cawg-agent-identity-assertion.schema.json",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/cawg-agent-identity-assertion.schema.json",
   "title": "CAWG Agent Identity Assertion",
   "description": "A C2PA assertion attributing produced content to an attested agent identity. AIA spec §8. The data block is a compact projection of an Agent Identity Document. Embeddable in a C2PA Manifest; composes with the CAWG (human) identity assertion.",
   "type": "object",

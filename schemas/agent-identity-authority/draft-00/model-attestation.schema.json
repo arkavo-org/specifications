@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/model-attestation.schema.json",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/model-attestation.schema.json",
   "title": "AIA Model Attestation",
   "description": "Model Attestation block per AIA spec §5. Evidence and verified claims about the model weights a subject is executing. Embedded in an Agent Identity Document; also validatable standalone.",
   "type": "object",

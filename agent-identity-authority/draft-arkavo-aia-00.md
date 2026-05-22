@@ -1,4 +1,4 @@
-# Agent Identity Attestation (AIA) Specification
+# Agent Identity Authority (AIA) Specification
 
 |                  |                                                                  |
 |------------------|------------------------------------------------------------------|
@@ -13,9 +13,9 @@
 
 ## Abstract
 
-**Agent Identity Attestation (AIA)** specifies a dedicated authority for AI agent
-identity: the **Agent Identity Authority**. Its only responsibility is to issue
-and attest agent identity. It is not an orchestrator and it is not a policy
+**Agent Identity Authority (AIA)** specifies a dedicated, upstream authority for
+AI agent identity. Its only responsibility is to issue and attest agent
+identity. It is not an orchestrator and it is not a policy
 decision point. It does not assign work, grant resource access, make ABAC
 decisions, delegate authority, or release TDF keys.
 
@@ -112,8 +112,8 @@ here.
 
 ## 2. Terminology
 
-- **AIA** — Agent Identity Attestation; this specification, and the discipline
-  it defines.
+- **AIA** — Agent Identity Authority; the abbreviation names both this
+  specification and the role it defines.
 - **Agent Identity Authority** — The dedicated role that issues and attests
   agent identity. `agent_type` value: `identity_authority`. Abbreviated "the
   Authority" below. Also termed the **Identity Agent** when described as an
