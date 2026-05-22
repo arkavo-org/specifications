@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/cawg-agent-identity-assertion.schema.json",
+  "title": "CAWG Agent Identity Assertion",
+  "description": "A C2PA assertion attributing produced content to an attested agent identity. AIA spec §8. The data block is a compact projection of an Agent Identity Document. Embeddable in a C2PA Manifest; composes with the CAWG (human) identity assertion.",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "const": "cawg.agent_identity"
+    },
+    "data": {
+      "type": "object",
+      "description": "Projection of the AID this assertion is derived from. Every member is copied verbatim from the AID. AIA spec §8.2.",
+      "properties": {
+        "aia_spec": { "$ref": "aia.schema.json#/$defs/AiaSpec" },
+        "aid_id": { "$ref": "aia.schema.json#/$defs/Blake3Digest" },
+        "subject_did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "agent_type": { "$ref": "aia.schema.json#/$defs/AgentType" },
+        "trust_level": { "$ref": "aia.schema.json#/$defs/TrustLevel" },
+        "owner_did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "owner_binding": {
+          "type": "string",
+          "enum": ["delegated", "owner_signed", "self"]
+        },
+        "model": { "$ref": "aia.schema.json#/$defs/ModelInfo" },
+        "weights_digest": { "$ref": "aia.schema.json#/$defs/Blake3Digest" },
+        "attestation_format": {
+          "type": "string",
+          "enum": ["rats-software", "rats-hardware"]
+        },
+        "authority_did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "aid_signature": {
+          "$ref": "aia.schema.json#/$defs/Base64Url",
+          "description": "The AID signature.value; lets a holder of the full AID verify the assertion as it verifies the AID."
+        }
+      },
+      "required": [
+        "aia_spec",
+        "aid_id",
+        "subject_did",
+        "agent_type",
+        "trust_level",
+        "owner_did",
+        "owner_binding",
+        "model",
+        "weights_digest",
+        "attestation_format",
+        "authority_did",
+        "aid_signature"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": ["label", "data"],
+  "additionalProperties": false
+}

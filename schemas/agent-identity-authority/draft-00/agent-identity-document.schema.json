@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-authority/draft-00/agent-identity-document.schema.json",
+  "title": "Agent Identity Document (AID)",
+  "description": "An Agent Identity Authority (AIA) Agent Identity Document per draft-arkavo-aia-00 §4. A signed, content-addressed record binding an agent to an attested model/runtime, an owner, and a key. Identifies a durable agent by default; flight_binding is present only for ephemeral flight-scoped credentials. An AID states facts; it carries no authorization (spec §3.2 N1-N5, §3.5).",
+  "type": "object",
+  "properties": {
+    "aia_spec": { "$ref": "aia.schema.json#/$defs/AiaSpec" },
+    "aid": { "$ref": "#/$defs/AidMetadata" },
+    "subject": { "$ref": "#/$defs/Subject" },
+    "owner": { "$ref": "#/$defs/Owner" },
+    "flight_binding": { "$ref": "#/$defs/FlightBinding" },
+    "key": { "$ref": "#/$defs/Key" },
+    "model_attestation": { "$ref": "model-attestation.schema.json" },
+    "runtime_attestation": { "$ref": "#/$defs/RuntimeAttestation" },
+    "delegation": { "$ref": "#/$defs/Delegation" },
+    "assertions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/AssertionRef" },
+      "description": "References to CAWG agent identity assertions emitted for this subject. Default []. Spec §4.10."
+    },
+    "signature": { "$ref": "#/$defs/Signature" }
+  },
+  "required": [
+    "aia_spec",
+    "aid",
+    "subject",
+    "owner",
+    "key",
+    "model_attestation",
+    "runtime_attestation",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "AidMetadata": {
+      "type": "object",
+      "description": "AID identity and validity window. Spec §4.2, §4.12.",
+      "properties": {
+        "id": {
+          "$ref": "aia.schema.json#/$defs/Blake3Digest",
+          "description": "BLAKE3 of the JCS-canonical AID excluding aid.id and signature. Spec §4.12."
+        },
+        "issued": { "$ref": "aia.schema.json#/$defs/RFC3339" },
+        "expires": { "$ref": "aia.schema.json#/$defs/RFC3339" },
+        "nonce": { "$ref": "aia.schema.json#/$defs/Nonce" }
+      },
+      "required": ["id", "issued", "expires", "nonce"],
+      "additionalProperties": false
+    },
+    "Subject": {
+      "type": "object",
+      "description": "The agent the AID describes. Spec §4.3.",
+      "properties": {
+        "did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "spiffe_id": { "$ref": "aia.schema.json#/$defs/SpiffeId" },
+        "agent_type": { "$ref": "aia.schema.json#/$defs/AgentType" },
+        "role_type": {
+          "$ref": "aia.schema.json#/$defs/RoleType",
+          "description": "Optional SwarmKit mesh archetype, when the agent acts in a SwarmKit mesh."
+        },
+        "trust_level": { "$ref": "aia.schema.json#/$defs/TrustLevel" },
+        "runtime": { "$ref": "aia.schema.json#/$defs/RuntimeLocus" },
+        "organization": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "Optional DID of the organization the agent belongs to. Populates agent.identity.organization."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "aia.schema.json#/$defs/Capability" },
+          "description": "Coarse protocol capabilities the agent speaks. Descriptive identity, NOT a tool grant (§3.5)."
+        },
+        "display_name": { "type": "string" }
+      },
+      "required": ["did", "agent_type", "trust_level", "runtime", "capabilities"],
+      "additionalProperties": false
+    },
+    "Owner": {
+      "type": "object",
+      "description": "The principal on whose behalf the subject acts (WIMSE dual-identity binding). Spec §4.4.",
+      "properties": {
+        "did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "owner_type": {
+          "type": "string",
+          "enum": ["person", "device", "organization", "policy_engine"]
+        },
+        "binding": {
+          "type": "string",
+          "enum": ["delegated", "owner_signed", "self"]
+        },
+        "owner_signature": {
+          "$ref": "aia.schema.json#/$defs/Base64Url",
+          "description": "Ed25519 owner signature over the canonical subject+owner blocks. Required iff binding is 'owner_signed'."
+        }
+      },
+      "required": ["did", "owner_type", "binding"],
+      "additionalProperties": false,
+      "if": {
+        "properties": { "binding": { "const": "owner_signed" } }
+      },
+      "then": {
+        "required": ["did", "owner_type", "binding", "owner_signature"]
+      }
+    },
+    "FlightBinding": {
+      "type": "object",
+      "description": "OPTIONAL. Present only for an ephemeral agent created for a single SwarmFlight; absent for a durable agent identity. Spec §4.5.",
+      "properties": {
+        "flight_id": { "$ref": "aia.schema.json#/$defs/FlightId" },
+        "kit_id": {
+          "$ref": "aia.schema.json#/$defs/Blake3Digest",
+          "description": "MUST equal the SwarmKit kit.id (SwarmKit §9.1)."
+        },
+        "role_id": { "$ref": "aia.schema.json#/$defs/RoleId" }
+      },
+      "required": ["flight_id", "kit_id", "role_id"],
+      "additionalProperties": false
+    },
+    "Key": {
+      "type": "object",
+      "description": "Subject public key for proof-of-possession. An AID is not a bearer token. Spec §4.6.",
+      "properties": {
+        "cnf": {
+          "type": "object",
+          "description": "RFC 7800 confirmation member.",
+          "properties": {
+            "jwk": { "$ref": "aia.schema.json#/$defs/Jwk" }
+          },
+          "required": ["jwk"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["cnf"],
+      "additionalProperties": false
+    },
+    "RuntimeAttestation": {
+      "type": "object",
+      "description": "Claims about the execution environment, distinct from the model. Spec §4.8.",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["llama.cpp", "mlx", "vllm", "custom"]
+        },
+        "backend_version": { "type": "string", "minLength": 1 },
+        "backend_digest": { "$ref": "aia.schema.json#/$defs/Blake3Digest" },
+        "host": {
+          "type": "object",
+          "properties": {
+            "isolation": {
+              "type": "string",
+              "enum": ["process", "container", "vm", "none"]
+            },
+            "tee": {
+              "type": "string",
+              "enum": ["none", "sev-snp", "tdx", "sgx", "cca", "nitro"]
+            },
+            "measured": { "type": "boolean" }
+          },
+          "required": ["isolation", "tee", "measured"],
+          "additionalProperties": false
+        },
+        "evidence_ref": {
+          "type": "string",
+          "description": "Reference to RATS evidence for the runtime, resolvable by the verifier."
+        }
+      },
+      "required": ["backend", "backend_version", "host"],
+      "additionalProperties": false
+    },
+    "Delegation": {
+      "type": "object",
+      "description": "Present iff the subject operates inside a delegation chain. RFC 8693 delegation semantics. Spec §4.9.",
+      "properties": {
+        "chain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "actor": { "$ref": "aia.schema.json#/$defs/Did" },
+              "kind": { "type": "string", "enum": ["owner", "agent"] }
+            },
+            "required": ["actor", "kind"],
+            "additionalProperties": false
+          },
+          "description": "Ordered delegation chain, root principal first, immediate delegator last."
+        },
+        "act": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "DID of the subject; the current actor (RFC 8693 'act'). Restates subject.did."
+        },
+        "may_act": {
+          "type": "object",
+          "description": "Constraints on onward delegation (RFC 8693 'may_act').",
+          "properties": {
+            "audience": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1,
+              "description": "Trust domains within which identity may be re-bound. Spec §6.4."
+            },
+            "max_depth": { "type": "integer", "minimum": 1 },
+            "scope_reduction_only": { "type": "boolean" }
+          },
+          "required": ["audience", "max_depth", "scope_reduction_only"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["chain", "act", "may_act"],
+      "additionalProperties": false
+    },
+    "AssertionRef": {
+      "type": "object",
+      "properties": {
+        "assertion_label": { "type": "string", "const": "cawg.agent_identity" },
+        "assertion_digest": { "$ref": "aia.schema.json#/$defs/Blake3Digest" }
+      },
+      "required": ["assertion_label", "assertion_digest"],
+      "additionalProperties": false
+    },
+    "Signature": {
+      "type": "object",
+      "description": "The Agent Identity Authority's signature over the AID. Spec §4.11.",
+      "properties": {
+        "authority_did": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "DID of the issuing Agent Identity Authority."
+        },
+        "trust_anchor": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "The Root Identity Agent the Authority key chains to; MUST be independent of the orchestrator. Spec §3.4."
+        },
+        "algorithm": { "type": "string", "const": "ed25519" },
+        "value": { "$ref": "aia.schema.json#/$defs/Base64Url" }
+      },
+      "required": ["authority_did", "trust_anchor", "algorithm", "value"],
+      "additionalProperties": false
+    }
+  }
+}
