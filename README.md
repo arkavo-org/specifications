@@ -145,10 +145,11 @@ Wire format: `application/vnd.arkavo.swarmkit+yaml` (manifest), `.swarmkit.tdf` 
 
 **Agent Identity Attestation (AIA): Attested Identity for Multi-Agent Meshes**
 
-AIA specifies how the identity of an AI agent is issued, attested, and verified independently of the agent that orchestrates its work. It defines a sixth SwarmKit mesh role — the **Identity Attestor** — alongside Scribe, Historian, Planner, Critic, and Operator, and closes the foot-gun in which a SwarmKit orchestrator implicitly mints the identities it delegates to:
+AIA specifies a dedicated, upstream authority for AI agent identity — the **Agent Identity Authority** — whose only responsibility is to issue and attest agent identity. It does not assign work, grant resource access, make ABAC decisions, delegate authority, or release TDF keys. AIA closes the foot-gun in which a SwarmKit orchestrator becomes a super-agent that both creates identities and grants access:
 
-- **Agent Identity Document (AID)**: A signed, content-addressed record binding an agent to an attested model/runtime, an owner principal, and one SwarmFlight role — carrying no authorization
+- **Agent Identity Document (AID)**: A signed, content-addressed record binding an agent to an attested model/runtime, an owner principal, and a proof-of-possession key — carrying no authorization. Projected to a compact JWT-shaped Agent Identity Credential
 - **Model Attestation Profile**: BLAKE3 weight digests, RATS-aligned evidence, and a SPIFFE/SPIRE-compatible `arkavo` workload selector vocabulary
+- **Identity / Authorization boundary**: identity-originated `agent.identity.*` OpenTDF attributes versus orchestrator-issued capability attributes
 - **WIMSE Interoperability**: AID ↔ Workload Identity Token / Certificate mappings; `did:web` ⇄ `spiffe://`
 - **CAWG Agent Identity Assertion**: A `cawg.agent_identity` C2PA assertion attributing produced content to an attested agent
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/arkavo-org/specifications/schemas/agent-identity-attestation/draft-00/agent-identity-document.schema.json",
   "title": "Agent Identity Document (AID)",
-  "description": "An Agent Identity Attestation (AIA) Agent Identity Document per draft-arkavo-aia-00 §4. A signed, content-addressed record binding a specialist agent to an attested model/runtime, an owner, and one SwarmFlight role. An AID states facts; it carries no authorization (spec §3.2 N5).",
+  "description": "An Agent Identity Attestation (AIA) Agent Identity Document per draft-arkavo-aia-00 §4. A signed, content-addressed record binding an agent to an attested model/runtime, an owner, and a key. Identifies a durable agent by default; flight_binding is present only for ephemeral flight-scoped credentials. An AID states facts; it carries no authorization (spec §3.2 N1-N5, §3.5).",
   "type": "object",
   "properties": {
     "aia_spec": { "$ref": "aia.schema.json#/$defs/AiaSpec" },
@@ -26,7 +26,6 @@
     "aid",
     "subject",
     "owner",
-    "flight_binding",
     "key",
     "model_attestation",
     "runtime_attestation",
@@ -55,10 +54,25 @@
       "properties": {
         "did": { "$ref": "aia.schema.json#/$defs/Did" },
         "spiffe_id": { "$ref": "aia.schema.json#/$defs/SpiffeId" },
-        "role_type": { "$ref": "aia.schema.json#/$defs/RoleType" },
+        "agent_type": { "$ref": "aia.schema.json#/$defs/AgentType" },
+        "role_type": {
+          "$ref": "aia.schema.json#/$defs/RoleType",
+          "description": "Optional SwarmKit mesh archetype, when the agent acts in a SwarmKit mesh."
+        },
+        "trust_level": { "$ref": "aia.schema.json#/$defs/TrustLevel" },
+        "runtime": { "$ref": "aia.schema.json#/$defs/RuntimeLocus" },
+        "organization": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "Optional DID of the organization the agent belongs to. Populates agent.identity.organization."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "aia.schema.json#/$defs/Capability" },
+          "description": "Coarse protocol capabilities the agent speaks. Descriptive identity, NOT a tool grant (§3.5)."
+        },
         "display_name": { "type": "string" }
       },
-      "required": ["did", "role_type"],
+      "required": ["did", "agent_type", "trust_level", "runtime", "capabilities"],
       "additionalProperties": false
     },
     "Owner": {
@@ -90,7 +104,7 @@
     },
     "FlightBinding": {
       "type": "object",
-      "description": "Binds the AID to one role of one SwarmFlight. Spec §4.5.",
+      "description": "OPTIONAL. Present only for an ephemeral agent created for a single SwarmFlight; absent for a durable agent identity. Spec §4.5.",
       "properties": {
         "flight_id": { "$ref": "aia.schema.json#/$defs/FlightId" },
         "kit_id": {
@@ -206,17 +220,20 @@
     },
     "Signature": {
       "type": "object",
-      "description": "The Identity Attestor's signature over the AID. Spec §4.11.",
+      "description": "The Agent Identity Authority's signature over the AID. Spec §4.11.",
       "properties": {
-        "attestor_did": { "$ref": "aia.schema.json#/$defs/Did" },
+        "authority_did": {
+          "$ref": "aia.schema.json#/$defs/Did",
+          "description": "DID of the issuing Agent Identity Authority."
+        },
         "trust_anchor": {
           "$ref": "aia.schema.json#/$defs/Did",
-          "description": "Anchor the Attestor key chains to; MUST be independent of the orchestrator. Spec §3.4."
+          "description": "The Root Identity Agent the Authority key chains to; MUST be independent of the orchestrator. Spec §3.4."
         },
         "algorithm": { "type": "string", "const": "ed25519" },
         "value": { "$ref": "aia.schema.json#/$defs/Base64Url" }
       },
-      "required": ["attestor_did", "trust_anchor", "algorithm", "value"],
+      "required": ["authority_did", "trust_anchor", "algorithm", "value"],
       "additionalProperties": false
     }
   }

@@ -26,14 +26,14 @@ SwarmKit schemas use for `agent-provisioning.schema.json`.
 ## Cross-Block Validations Not Expressible in JSON Schema
 
 These invariants from the specification cannot be checked by the schemas alone —
-they MUST be enforced by the Identity Attestor at issuance and by verifiers at
-presentation:
+they MUST be enforced by the Agent Identity Authority at issuance and by
+verifiers at presentation:
 
 1. `aid.id` equals `BLAKE3` of the JCS-canonical AID excluding `aid.id` and `signature` (§4.12).
-2. `signature.value` verifies against the Attestor key resolved from `signature.attestor_did` (§4.12).
-3. `signature.trust_anchor` is trusted by the verifier and is independent of the orchestrator (§3.4, §4.11).
-4. `subject.did` and `subject.spiffe_id` share the same authority, flight id, and role id (§7.3).
-5. `flight_binding.kit_id` equals the `kit.id` of the SwarmKit being executed, and `flight_binding.flight_id` matches the flight of presentation (§4.5, §6.2).
+2. `signature.value` verifies against the Authority key resolved from `signature.authority_did`, validated up the published trust chain (§4.12, §3.4).
+3. `signature.trust_anchor` resolves to a Root Identity Agent trusted by the verifier and independent of the orchestrator (§3.4, §4.11).
+4. `subject.did` and `subject.spiffe_id` share the same authority and agent (or flight/role) components (§7.3).
+5. When `flight_binding` is present, `flight_binding.kit_id` equals the `kit.id` of the SwarmKit being executed and `flight_binding.flight_id` matches the flight of presentation (§4.5, §6.3).
 6. `delegation.act` equals `subject.did` (§4.9).
 7. `delegation.chain` length plus one does not exceed `delegation.may_act.max_depth` before a further hop is issued (§4.9, §6.4).
 8. `weights.digest` matches the expected/pinned model digest, when one is known (§5.7 V-M1).
@@ -41,6 +41,7 @@ presentation:
 10. `evidence.nonce` matches the nonce expected for this issuance (§5.7 V-M2).
 11. When `owner.binding` is `owner_signed`, `owner.owner_signature` verifies over the canonical `subject` + `owner` blocks (§4.4).
 12. `aid.expires` is in the future; `aid.id` is absent from any reachable revocation list (§9.3, §9.4).
+13. The AID carries no attribute outside the `agent.identity.*` namespace; a KAS accepts only `agent.identity.*` attributes from a credential (§3.5).
 
 ## Usage
 
@@ -122,7 +123,7 @@ existing version directories in place.
 
 | Level | Required Schemas | Use Case |
 |-------|------------------|----------|
-| Level 1 (Issuer) | all four | Identity Attestors that issue AIDs and emit assertions |
+| Level 1 (Issuer) | all four | Agent Identity Authorities that issue AIDs and emit assertions |
 | Level 2 (Verifier) | `agent-identity-document`, `model-attestation`, `aia` | KAS, MCP brokers, A2A peers verifying AIDs |
 | Level 3 (Model Attestor) | `model-attestation`, `aia` | Components producing model attestation evidence |
 
