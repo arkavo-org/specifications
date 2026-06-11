@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/reset.schema.json",
+  "title": "Reset",
+  "description": "Request and response for the `reset` tool (spec section 5.4): start or restart an episode. Scenario strings are environment-defined; available scenarios MUST be listed in the manifest.",
+  "type": "object",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "Arguments for `reset`",
+      "properties": {
+        "Seed": {
+          "type": "integer",
+          "description": "RNG seed for deterministic episodes (REQ-DET-01: same seed + same actions = same observations and hashes)"
+        },
+        "Scenario": {
+          "type": "string",
+          "description": "Named scenario, checkpoint, or parameterized form (e.g. 'training_base', 'new', 'new:Crashlanded:BorealForest:Randy:Strive:250')"
+        },
+        "Config": {
+          "type": "object",
+          "description": "Optional episode setup configuration",
+          "properties": {
+            "DomainRandomization": {
+              "type": "object",
+              "description": "Environment-defined domain randomization parameters"
+            },
+            "InitialState": {
+              "type": "object",
+              "description": "Environment-defined initial state overrides"
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "description": "Either an initial StepResult (with Reward: 0), or {\"Status\": \"Restarting\"} for long-running resets — agents then poll `observe` until ready",
+      "oneOf": [
+        {
+          "$ref": "step.schema.json#/$defs/response",
+          "description": "Initial StepResult for the new episode"
+        },
+        {
+          "$ref": "#/$defs/restarting"
+        }
+      ]
+    },
+    "restarting": {
+      "type": "object",
+      "description": "Immediate acknowledgment for long-running resets (full game restarts, checkpoint loads)",
+      "properties": {
+        "Status": {
+          "const": "Restarting",
+          "description": "The environment is restarting; poll `observe` until ready"
+        }
+      },
+      "required": ["Status"]
+    }
+  }
+}

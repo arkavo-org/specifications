@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/vision-stream.schema.json",
+  "title": "Vision Stream",
+  "description": "Request for the `configureStreams` tool and the Stream Descriptors it returns (spec sections 5.7 and 11). Streams provide pixel observations via shared memory; frames are referenced from step results via FrameIds.",
+  "type": "object",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "Arguments for `configureStreams`",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Registered agent ID the streams are configured for"
+        },
+        "Profile": {
+          "type": "string",
+          "description": "Named stream profile from the manifest StreamProfiles (e.g. 'policy_fast')"
+        },
+        "Custom": {
+          "$ref": "#/$defs/custom_config",
+          "description": "Custom stream configuration; support is OPTIONAL (MAY)"
+        }
+      },
+      "required": ["AgentId", "Profile"]
+    },
+    "custom_config": {
+      "type": "object",
+      "description": "Custom stream configuration in place of (or refining) a named profile",
+      "properties": {
+        "Streams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stream_request"
+          },
+          "description": "Requested streams"
+        }
+      },
+      "required": ["Streams"]
+    },
+    "stream_request": {
+      "type": "object",
+      "description": "One requested stream",
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Stream name (e.g. 'rgb')"
+        },
+        "Width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Requested frame width in pixels"
+        },
+        "Height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Requested frame height in pixels"
+        },
+        "PixelFormat": {
+          "type": "string",
+          "enum": ["rgba8", "bgra8", "rgb8", "r32f", "rg32f"],
+          "description": "Requested pixel format"
+        }
+      },
+      "required": ["Name", "Width", "Height"]
+    },
+    "response": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StreamDescriptor"
+      },
+      "description": "Stream Descriptors for the configured streams"
+    },
+    "StreamDescriptor": {
+      "type": "object",
+      "description": "Descriptor of one configured stream. Frame synchronization: the environment renders to slot N % RingCount, signals the sync primitive, and includes FrameIds: {\"<StreamId>\": N} in the step result; the agent waits, then reads.",
+      "properties": {
+        "StreamId": {
+          "type": "string",
+          "description": "Stream identifier referenced by FrameIds in step results (e.g. 'rgb_0')"
+        },
+        "Width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Frame width in pixels"
+        },
+        "Height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Frame height in pixels"
+        },
+        "PixelFormat": {
+          "type": "string",
+          "enum": ["rgba8", "bgra8", "rgb8", "r32f", "rg32f"],
+          "description": "Pixel format of the frames"
+        },
+        "RingCount": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Number of buffers in the frame ring"
+        },
+        "Transport": {
+          "$ref": "#/$defs/transport",
+          "description": "Shared-memory transport carrying the frames"
+        },
+        "Sync": {
+          "$ref": "#/$defs/sync",
+          "description": "Frame synchronization primitive"
+        }
+      },
+      "required": ["StreamId", "Width", "Height", "PixelFormat", "RingCount", "Transport"]
+    },
+    "transport": {
+      "description": "Shared-memory transport descriptor; one array entry per ring buffer slot",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "macOS IOSurface transport",
+          "properties": {
+            "Type": {
+              "const": "iosurface",
+              "description": "Transport type discriminator"
+            },
+            "SurfaceIds": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "description": "IOSurface IDs, one per ring slot"
+            }
+          },
+          "required": ["Type", "SurfaceIds"]
+        },
+        {
+          "type": "object",
+          "description": "POSIX shared memory transport",
+          "properties": {
+            "Type": {
+              "const": "shm",
+              "description": "Transport type discriminator"
+            },
+            "ShmName": {
+              "type": "string",
+              "description": "Shared memory object name"
+            },
+            "Offsets": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "description": "Byte offsets into the shared memory object, one per ring slot"
+            }
+          },
+          "required": ["Type", "ShmName", "Offsets"]
+        },
+        {
+          "type": "object",
+          "description": "Windows DXGI shared handle transport",
+          "properties": {
+            "Type": {
+              "const": "dxgi",
+              "description": "Transport type discriminator"
+            },
+            "SharedHandles": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "description": "DXGI shared handles, one per ring slot"
+            }
+          },
+          "required": ["Type", "SharedHandles"]
+        }
+      ]
+    },
+    "sync": {
+      "type": "object",
+      "description": "Frame synchronization primitive",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["metal_event", "d3d_fence", "semaphore", "polling"],
+          "description": "Synchronization mechanism; 'polling' requires no handle"
+        },
+        "Handle": {
+          "type": "integer",
+          "description": "OS handle for the sync primitive (absent for polling)"
+        }
+      },
+      "required": ["Type"]
+    }
+  }
+}

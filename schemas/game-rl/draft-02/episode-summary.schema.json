@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/episode-summary.schema.json",
+  "title": "Episode Summary",
+  "description": "Result of the `episodeSummary` tool (spec section 5.6): cumulative episode metrics. The tool takes no arguments. Orchestrators treat episodeSummary calls as episode delimiters for trajectory consolidation and lesson synthesis.",
+  "type": "object",
+  "properties": {
+    "TotalReward": {
+      "type": "number",
+      "description": "Sum of step rewards over the episode so far"
+    },
+    "StepCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of steps executed this episode"
+    },
+    "TicksElapsed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Simulation ticks elapsed this episode"
+    },
+    "RewardBreakdown": {
+      "type": "object",
+      "additionalProperties": { "type": "number" },
+      "description": "Cumulative reward per component, keyed by component name declared in the manifest"
+    }
+  },
+  "required": ["TotalReward", "StepCount"]
+}
