@@ -1,5 +1,20 @@
 # Game-RL Specification Changelog
 
+## 3.0.0-draft03 (2026-06-12) — `draft-arkavo-game-rl-03.md`
+
+Promotes four conventions now field-validated across two adapters (RimWorld systemic + Project Zomboid embodied).
+
+### Added
+- **RenderMap viewport** (§5.9, REQ-VIS-01): read-only ASCII viewport centered on the agent's Reference Point with absolute coordinate rulers; coordinates read off it are valid action anchors. The standard textual-perception channel for LLM agents; SHOULD at Level 2.
+- **Structured construction & one-shot actions** (§7.8, REQ-BLD-01): structural primitives over coordinate spam; one-shot actions that cannot strand intermediate state. Normative finding: rule-driven conductors do not reliably read error text or follow prompt conditionals, so sequencing constraints MUST be enforceable adapter-side.
+
+### Strengthened
+- **REQ-ERR-03** (§3.4): partial successes MUST report the shortfall and SHOULD carry the engine's rejection reasons; a partial reported as plain success is non-conformant.
+- **REQ-SPA-03** (§7.4): the spatial Reference Point is the agent's locus and depends on agency scope — activity centroid for systemic agents, avatar position for embodied agents; never the map center. Validated across both adapters.
+
+### Conformance
+- New checks C-RENDERMAP (L2) and C-ERR-PARTIAL (L1).
+
 ## 2.0.0-draft02 (2026-06-11) — `draft-arkavo-game-rl-02.md`
 
 The first revision codifying the dialect proven in released implementations (game-rl 0.6.x for RimWorld and Project Zomboid, consumed by Arkavo Edge). draft-00 is preserved unrevised for historical reference; the **draft-01 designation is intentionally unused** (reserved against interim internal revisions of draft-00 — the numbering gap marks the dialect break).
