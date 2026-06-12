@@ -19,10 +19,26 @@
         },
         "Config": {
           "$ref": "#/$defs/config",
-          "description": "Optional registration configuration; all fields optional except AvatarId when Scope is 'embodied'"
+          "description": "Optional registration configuration; all fields optional except AvatarId, which is required when Scope is 'embodied' or when AgentType defaults to embodied (Player, Entity) and Scope is not 'systemic'"
         }
       },
-      "required": ["AgentId", "AgentType"]
+      "required": ["AgentId", "AgentType"],
+      "allOf": [
+        {
+          "$comment": "Embodied-default AgentTypes (Player, Entity) require Config.AvatarId unless Scope is explicitly overridden to 'systemic' (spec §4.1 default-scope mapping).",
+          "if": {
+            "properties": {
+              "AgentType": { "enum": ["Player", "Entity"] },
+              "Config": { "not": { "properties": { "Scope": { "const": "systemic" } }, "required": ["Scope"] } }
+            },
+            "required": ["AgentType"]
+          },
+          "then": {
+            "required": ["Config"],
+            "properties": { "Config": { "required": ["AvatarId"] } }
+          }
+        }
+      ]
     },
     "config": {
       "type": "object",
