@@ -1468,15 +1468,6 @@ Cache key MUST include PDP origin so rollback cannot reuse entries.
 - OpenTDFKit CLAUDE.md (opaque Bearer)
 - `specifications/ntdf-token/draft-arkavo-ntdf-token-00.md` (**SUPERSEDED**)
 
-### Independent reviews
-
-This draft incorporates independent reviews dated 2026-08-26:
-
-- `specifications/authzen-cwt/reviews/claude.md`
-- `specifications/authzen-cwt/reviews/crush.md`
-
-Applied changes are listed in `specifications/authzen-cwt/reviews/applied-2026-08-26.md`. Architecture (AuthZEN facade over OpenTDF v2; CWT stays) was not reopened.
-
 ## Key Decisions
 
 1. **AuthZEN is the PEP↔PDP protocol; CWT remains the access token.** Do not encode SARC in CWT. Do not revert to JWT access tokens. `signed_metadata` stays JWT.
