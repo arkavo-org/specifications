@@ -1274,7 +1274,7 @@ Operator config (`arks`):
 | Variable | Default | Purpose |
 |---|---|---|
 | `AUTHZEN_FACADE` | `off` | `off` or `on` only. `on` serves AuthZEN routes + well-known. Independent of `AUTHZ_PROXY`. |
-| `OPENTDF_PLATFORM_URL` | — | **Required** when `AUTHZEN_FACADE=on`. May be loopback (`http://127.0.0.1:8443`) for a co-located platform sidecar. |
+| `OPENTDF_PLATFORM_URL` | — | **Required** when `AUTHZEN_FACADE=on`. May be loopback for a co-located platform sidecar. Production host: `http://127.0.0.1:8181` (the platform HTTP port). `:8443` on that box is a Docker listener, not the sidecar. |
 | `AUTHZEN_PEP_CLIENT_IDS` | unset | Optional allowlist → HTTP 403 for other service accounts |
 | `OIDC_ISSUER` / cose-keys URL | identity.arkavo.net | Service CWT verification |
 | `AUTHZ_PROXY` | `off` | Existing v2 relay; keep for rollback and platform KAS |
