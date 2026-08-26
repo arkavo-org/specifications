@@ -47,20 +47,22 @@ Wire format: AMF-encoded manifest in RTMP metadata
 
 ### ntdf-token/
 
-**NTDF Tokens: NanoTDF-based Authentication Tokens**
+**NTDF Tokens: NanoTDF-based Authentication Tokens — SUPERSEDED**
 
-NTDF tokens are cryptographically-bound authentication tokens that replace traditional JWT Bearer tokens. Built on OpenTDF's NanoTDF specification, they provide:
+**Status: SUPERSEDED.** Arkavo-issued access tokens are CWT (RFC 8392, COSE_Sign1 ES256), not NTDF. See the jwt-to-cwt design in `authnz-rs` and [authzen-cwt](authzen-cwt/draft-arkavo-authzen-cwt-00.md). This draft is retained for history. `arkavo-rs/src/modules/ntdf_token.rs` is a historical leftover; it is not the AuthZEN subject credential.
 
-- **Proof-of-Possession**: DPoP (RFC 9449) integration prevents token theft
-- **Policy Binding**: Cryptographic GMAC binding enforces access control at the KAS
-- **Confidentiality**: AES-256-GCM encrypted payload protects claim data
-- **Provenance**: Ed25519 signatures ensure token integrity and origin
+The draft defined cryptographically-bound authentication tokens that would have replaced JWT Bearer tokens, using OpenTDF NanoTDF with:
 
-Wire format: `Authorization: NTDF <Z85-encoded-nanotdf>`
+- **Proof-of-Possession**: DPoP (RFC 9449)
+- **Policy Binding**: Cryptographic GMAC at the KAS
+- **Confidentiality**: AES-256-GCM payload
+- **Provenance**: Ed25519 signatures
 
-**Latest Draft**: [draft-arkavo-ntdf-token-00](ntdf-token/draft-arkavo-ntdf-token-00.md)
+Wire format (historical): `Authorization: NTDF <Z85-encoded-nanotdf>`
 
-**Reference Implementation**: [arkavo-rs](https://github.com/arkavo-org/arkavo-rs)
+**Latest Draft (historical)**: [draft-arkavo-ntdf-token-00](ntdf-token/draft-arkavo-ntdf-token-00.md)
+
+**Superseded by**: CWT access tokens ([authzen-cwt](authzen-cwt/draft-arkavo-authzen-cwt-00.md)); issuer [authnz-rs](https://github.com/arkavo-org/authnz-rs)
 
 ---
 
@@ -119,6 +121,26 @@ Wire format: `application/arp+json` (JSON canonical), `.arp.toml` (authoring)
 **Latest Draft**: [arp-spec-draft-00](agent-runtime-policy/arp-spec-draft-00.md)
 
 **JSON Schemas**: [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/)
+
+---
+
+### authzen-cwt/
+
+**CWT Subject Profile and AuthZEN Facade for the Arkavo Ecosystem**
+
+Profiles OpenID AuthZEN Authorization API 1.0 as the PEP↔PDP decision protocol while retaining Arkavo-issued CWT (RFC 8392, COSE_Sign1 ES256) as the access-token / subject credential. An AuthZEN HTTPS JSON facade in `arks` translates SARC to OpenTDF Authorization Service v2 (claims-mode entity chains). First PEPs: COAZ-MCP (CWT `$token`) and the tdf-iroh-s3 entitled catalog. KAS NanoTDF rewrap stays off the AuthZEN JSON path in v1.
+
+- **CWT Subject Profile**: verified PE CWT → `subject.type=identity` / `subject.id=sub`; device NPE and node-asserted environment in `context`; `$token` is the text-named claims map
+- **Facade**: `POST /access/v1/evaluation` → `GetDecision`; `POST /access/v1/evaluations` → `GetDecisionMultiResource` / `GetDecisionBulk`; discovery at `/.well-known/authzen-configuration`
+- **Two tokens**: service CWT authenticates the PEP to the PDP; subject CWT is never the AuthZEN Bearer and is never sent to the ERS JWT parser
+- **Claims profile rule**: `arkavo_roles` / `arkavo_entitlements` are enrichment only; evaluate at use
+- **ntdf-token**: SUPERSEDED; CWT is the access-token format
+
+Wire format: AuthZEN 1.0 HTTPS JSON; CWT as unpadded base64url Bearer / `X-Auth-Token` / `X-Entity-Token`
+
+**Latest Draft**: [draft-arkavo-authzen-cwt-00](authzen-cwt/draft-arkavo-authzen-cwt-00.md)
+
+**Reference Implementation**: [arkavo-rs](https://github.com/arkavo-org/arkavo-rs) (facade), [arkavo-edge](https://github.com/arkavo-org/arkavo-edge) (COAZ-MCP PEP), [tdf-iroh-s3](https://github.com/arkavo-org/tdf-iroh-s3) (catalog PEP), [authnz-rs](https://github.com/arkavo-org/authnz-rs) (CWT issuer)
 
 ---
 

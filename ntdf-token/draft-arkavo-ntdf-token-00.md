@@ -40,6 +40,9 @@ This specification defines NTDF (NanoTDF) tokens, a cryptographically-bound auth
 
 --- middle
 ```
+
+**Status: SUPERSEDED.** Arkavo-issued access tokens are CWT (RFC 8392, COSE_Sign1 ES256) as specified by the jwt-to-cwt design in `authnz-rs` and by `specifications/authzen-cwt/draft-arkavo-authzen-cwt-00.md`. This draft is retained for history. It is not the AuthZEN subject credential and MUST NOT be implemented as an access-token format for new work.
+
 # Introduction
 
 Traditional JWT Bearer tokens suffer from several security limitations:
