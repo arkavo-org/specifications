@@ -103,6 +103,27 @@ TDF-CBOR defines a compact CBOR-based serialization for the Trusted Data Format,
 
 ---
 
+### gguf-tdf/
+
+**OpenTDF GGUF Profile (`gguf-tdf/1`)**
+
+`gguf-tdf/1` is an Arkavo profile of OpenTDF zip TDF for protecting GGUF model files. A source `.gguf` is wrapped as a ZIP archive (`.gguf.tdf`) with a standard OpenTDF manifest plus a hybrid `gguf` index. Each OpenTDF segment is a zip member (`header`, `s/1`, … `s/{n}`) so a loader can `read_at` a virtual GGUF via central-directory lookup without decrypting the whole file or writing a plaintext temp GGUF.
+
+- **Profile, not a replacement**: OpenTDF payload-key wrap, KAS rewrap, AES-256-GCM, GMAC, and HS256 root signature are unchanged
+- **Virtual GGUF**: llama.cpp (or any executor) sees a byte-identical GGUF through a generic reader callback; no TDF/AES/KAS in the C++ loader
+- **Fail closed**: KAS deny, policy miss, and GCM tag mismatch abort the load; no sibling `.gguf` fallback
+- **Non-goals (v1)**: NanoTDF, TDF-JSON, split-GGUF as one archive, VRAM encryption, `otdfctl decrypt` emitting vanilla GGUF
+
+Wire format: ZIP (Stored, ZIP64 when >4 GiB), file extension `.gguf.tdf`
+
+**Latest Draft**: [draft-arkavo-gguf-tdf-00](gguf-tdf/draft-arkavo-gguf-tdf-00.md)
+
+**JSON Schemas**: [schemas/gguf-tdf/draft-00/](schemas/gguf-tdf/draft-00/)
+
+**Design (informative; superseded on wire fields by the draft spec)**: [opentdf-gguf-profile-design.md](opentdf-gguf-profile-design.md)
+
+---
+
 ### agent-runtime-policy/
 
 **Agent Runtime Policy (ARP): Runtime Adaptation for AI Agents**
@@ -172,6 +193,7 @@ Machine-readable schema definitions for protocol validation:
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
 | Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
 | SwarmKit | [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/) |
+| gguf-tdf | [schemas/gguf-tdf/draft-00/](schemas/gguf-tdf/draft-00/) |
 
 ## License
 

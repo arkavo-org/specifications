@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/gguf-tdf/draft-00/gguf-index.schema.json",
+  "title": "gguf-tdf/1 hybrid index",
+  "description": "JSON Schema for the plaintext top-level `gguf` object in a gguf-tdf/1 OpenTDF manifest (spec §9). Validate `manifest.gguf` against this schema. OpenTDF `payload` / `encryptionInformation` remain under the OpenTDF 4.3.0 schema. Invariants in spec §9.4–§9.5 (prefix-sum, zip 1:1, tensor coverage, header bind) are NOT expressible here and MUST be checked by the reader.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "alignment",
+    "headerBytes",
+    "virtualSize",
+    "maxSegment",
+    "tensors",
+    "segments"
+  ],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "const": "gguf-tdf/1",
+      "description": "Profile identifier. Readers MUST fail closed on any other value (§8.2)."
+    },
+    "alignment": {
+      "$ref": "#/$defs/JsonUint53",
+      "minimum": 8,
+      "description": "GGUF ALIGN: general.alignment if present, else 32 (ggml docs/gguf.md). GGUF requires a multiple of 8. This profile additionally requires a power of two (§7.4); that check is the reader's, not this schema's."
+    },
+    "headerBytes": {
+      "$ref": "#/$defs/JsonUint53",
+      "minimum": 24,
+      "description": "Virtual offset of GGUF tensor_data (gguf_get_data_offset). MUST be a multiple of alignment (reader). Schema minimum 24 is GGUF v3 magic+version+tensor_count+kv_count; 24 is not a multiple of default ALIGN 32, so a value of 24 still fails the reader check unless alignment is 8."
+    },
+    "virtualSize": {
+      "$ref": "#/$defs/JsonUint53",
+      "minimum": 24,
+      "description": "Source GGUF file length in bytes. MUST be >= headerBytes."
+    },
+    "maxSegment": {
+      "$ref": "#/$defs/JsonUint53",
+      "minimum": 8,
+      "description": "Maximum plaintext size of a non-header segment. Default 4194304 (4 MiB). MUST be a multiple of alignment and >= alignment. Header plain MAY exceed this."
+    },
+    "tensors": {
+      "type": "array",
+      "description": "One entry per GGUF tensor, in GGUF file order. Empty only if tensor_count is 0.",
+      "items": { "$ref": "#/$defs/GgufTensor" }
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per encrypted zip member, order header, s/1, … s/n. segments[0] MUST be the header. Same length and order as encryptionInformation.integrityInformation.segments. kind=header is locked to index 0 by the reader, not by this schema.",
+      "items": { "$ref": "#/$defs/GgufSegment" }
+    }
+  },
+  "$defs": {
+    "JsonUint53": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Exact unsigned integer fitting in IEEE 754 JSON numbers (0 .. 2^53-1)."
+    },
+    "GgufTensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "offset", "size", "segments"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "description": "GGUF tensor name. JSON Schema maxLength is Unicode characters; ggml rejects names with length >= GGML_MAX_NAME (64), so the effective limit is 63 UTF-8 bytes. Readers MUST reject names whose UTF-8 byte length is greater than 63."
+        },
+        "offset": {
+          "$ref": "#/$defs/JsonUint53",
+          "description": "Virtual file offset of the tensor data: headerBytes + GGUF tensor.offset. MUST be >= headerBytes (reader)."
+        },
+        "size": {
+          "$ref": "#/$defs/JsonUint53",
+          "minimum": 1,
+          "description": "Tensor data size in bytes, excluding padding after the tensor."
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Half-open index range [start, end) into gguf.segments. start MUST be >= 1. end MUST be > start (so [1,1] is invalid). A tensor occupying only segment 5 is [5, 6].",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "GgufSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "plain", "entry"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/JsonUint53",
+          "description": "MUST equal the array index (reader). Header is 0. Tensor/pack segments are 1..n."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["header", "tensor", "pack"],
+          "description": "header: virtual [0, headerBytes), only at index 0 (reader). tensor: intersects exactly one tensor. pack: two or more tensors, or trailing/prior padding only."
+        },
+        "plain": {
+          "$ref": "#/$defs/JsonUint53",
+          "minimum": 1,
+          "description": "Plaintext size. MUST equal integrityInformation.segments[id].segmentSize. Non-header segments MUST have plain <= maxSegment. Packing MUST NOT emit a zero-length trailing segment."
+        },
+        "entry": {
+          "type": "string",
+          "description": "Zip member name. Header MUST be \"header\" (and kind MUST be header). Others MUST match s/[1-9][0-9]*. Cross-field kind/entry binding is a reader invariant.",
+          "pattern": "^(header|s/[1-9][0-9]*)$"
+        }
+      }
+    }
+  }
+}
