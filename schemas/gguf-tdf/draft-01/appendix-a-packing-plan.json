@@ -1,0 +1,27 @@
+{
+  "description": "Normative expected packing plan for Appendix A / spec §11.3 walkthrough / T15. ALIGN=32, headerBytes=64, maxSegment=128, virtualSize=352.",
+  "align": 32,
+  "headerBytes": 64,
+  "maxSegment": 128,
+  "virtualSize": 352,
+  "tensors": [
+    {
+      "name": "token_embd.weight",
+      "offset": 64,
+      "size": 256,
+      "segments": [1, 3]
+    },
+    {
+      "name": "blk.0.attn_norm.weight",
+      "offset": 320,
+      "size": 32,
+      "segments": [3, 4]
+    }
+  ],
+  "segments": [
+    { "id": 0, "kind": "header", "plain": 64, "entry": "header" },
+    { "id": 1, "kind": "tensor", "plain": 128, "entry": "s/1" },
+    { "id": 2, "kind": "tensor", "plain": 128, "entry": "s/2" },
+    { "id": 3, "kind": "tensor", "plain": 32, "entry": "s/3" }
+  ]
+}

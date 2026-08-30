@@ -1,0 +1,47 @@
+{
+  "description": "Normative expected packing plan for the tensor-aligned vector / spec \u00a715.5 / T20. ALIGN=32, headerBytes=64, maxSegment=128, virtualSize=256. A draft-00 fixed-window writer would emit s/1 [64,192) kind=pack and s/2 [192,256) kind=tensor, splitting blk.0.b.",
+  "align": 32,
+  "headerBytes": 64,
+  "maxSegment": 128,
+  "virtualSize": 256,
+  "tensors": [
+    {
+      "name": "blk.0.a",
+      "offset": 64,
+      "size": 96,
+      "segments": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "blk.0.b",
+      "offset": 160,
+      "size": 96,
+      "segments": [
+        2,
+        3
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "id": 0,
+      "kind": "header",
+      "plain": 64,
+      "entry": "header"
+    },
+    {
+      "id": 1,
+      "kind": "tensor",
+      "plain": 96,
+      "entry": "s/1"
+    },
+    {
+      "id": 2,
+      "kind": "tensor",
+      "plain": 96,
+      "entry": "s/2"
+    }
+  ]
+}

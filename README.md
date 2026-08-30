@@ -109,16 +109,19 @@ TDF-CBOR defines a compact CBOR-based serialization for the Trusted Data Format,
 
 `gguf-tdf/1` is an Arkavo profile of OpenTDF zip TDF for protecting GGUF model files. A source `.gguf` is wrapped as a ZIP archive (`.gguf.tdf`) with a standard OpenTDF manifest plus a hybrid `gguf` index. Each OpenTDF segment is a zip member (`header`, `s/1`, … `s/{n}`) so a loader can `read_at` a virtual GGUF via central-directory lookup without decrypting the whole file or writing a plaintext temp GGUF.
 
-- **Profile, not a replacement**: OpenTDF payload-key wrap, KAS rewrap, AES-256-GCM, GMAC, and HS256 root signature are unchanged
+- **Profile, not a replacement**: OpenTDF payload-key wrap, KAS rewrap, AES-256-GCM, GMAC, and HS256 root signature are unchanged. KAS **transport** follows `/.well-known/opentdf-configuration` (ConnectRPC preferred).
 - **Virtual GGUF**: llama.cpp (or any executor) sees a byte-identical GGUF through a generic reader callback; no TDF/AES/KAS in the C++ loader
-- **Fail closed**: KAS deny, policy miss, and GCM tag mismatch abort the load; no sibling `.gguf` fallback
+- **Additive wrap**: plaintext `.gguf` stays loadable when both files exist; `.gguf.tdf` is KAS-gated and fail-closed on that path
+- **Fail closed**: KAS deny, policy miss, and GCM tag mismatch abort a `.gguf.tdf` load; no sibling fallback **for that path**
 - **Non-goals (v1)**: NanoTDF, TDF-JSON, split-GGUF as one archive, VRAM encryption, `otdfctl decrypt` emitting vanilla GGUF
 
 Wire format: ZIP (Stored, ZIP64 when >4 GiB), file extension `.gguf.tdf`
 
-**Latest Draft**: [draft-arkavo-gguf-tdf-00](gguf-tdf/draft-arkavo-gguf-tdf-00.md)
+**Latest Draft**: [draft-arkavo-gguf-tdf-01](gguf-tdf/draft-arkavo-gguf-tdf-01.md)
 
-**JSON Schemas**: [schemas/gguf-tdf/draft-00/](schemas/gguf-tdf/draft-00/)
+**Previous**: [draft-arkavo-gguf-tdf-00](gguf-tdf/draft-arkavo-gguf-tdf-00.md)
+
+**JSON Schemas**: [schemas/gguf-tdf/draft-01/](schemas/gguf-tdf/draft-01/) (index schema identical to [draft-00](schemas/gguf-tdf/draft-00/) except `$id`)
 
 **Design (informative; superseded on wire fields by the draft spec)**: [opentdf-gguf-profile-design.md](opentdf-gguf-profile-design.md)
 
