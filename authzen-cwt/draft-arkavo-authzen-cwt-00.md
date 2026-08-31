@@ -527,7 +527,7 @@ Example — two devices (phone + watch). Both device `sub` values are the minted
 | `AUTHZEN_TOKEN_URL` | `https://identity.arkavo.net/oauth/token` | Same as catalog `catalog.authz.token_url` |
 | `AUTHZEN_CLIENT_ID` | `mcp-edge` | Confidential OIDC client |
 | `AUTHZEN_CLIENT_SECRET` | env only | Do not commit. Catalog uses `CATALOG_AUTHZ_CLIENT_SECRET`. |
-| `AUTHZEN_PDP_URL` | `https://kas.arkavo.net` | Discovery base; PEP then GET `/.well-known/authzen-configuration` |
+| `AUTHZEN_PDP_URL` | `https://platform.arkavo.net` | Discovery base; PEP then GET `/.well-known/authzen-configuration` |
 | `AUTHZEN_MCP_RESOURCE_ID` | `https://mcp.arkavo.net` | RFC 8707 resource identifier of **this** MCP server. `tools/list` requires this value to appear in `$token.aud` (string or array member) or the PEP raises a mapping error (`-32602`). |
 | `AUTHZEN_MCP_SERVER_SLUG` | `mcp_arkavo_net` | Charset-safe OpenTDF attribute value for `mcp_server`. If unset, derive a lowercase slug from `AUTHZEN_MCP_RESOURCE_ID` that matches `^[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?$` (e.g. `https://mcp.arkavo.net` → `mcp_arkavo_net`). AuthZEN `resource.id` for `type=mcp_server` is this slug, **not** a percent-encoded URL. |
 | `OIDC_PLATFORM_AUDIENCE` | `https://platform.arkavo.net` | Configured platform audience to exclude from the `context.agent` aud-fallback (and the extra member on production service/OIDC CWTs). |
@@ -772,7 +772,7 @@ Minted-format mismatch: PE `subject.id` is `arkavo:550e8400-e29b-41d4-a716-44665
 
 ```http
 POST /access/v1/evaluations HTTP/1.1
-Host: kas.arkavo.net
+Host: platform.arkavo.net
 Content-Type: application/json
 Authorization: Bearer 2QH9q...service-cwt...
 X-Request-ID: 7c9e6679-7425-40de-944b-e07fc1f90ae7
@@ -1238,7 +1238,7 @@ v1 MUST NOT send this from `cbor_protocol.rs`.
   "action": { "name": "rewrap" },
   "resource": {
     "type": "tdf",
-    "id": "https://kas.arkavo.net/kas#policy-binding",
+    "id": "https://platform.arkavo.net/kas#policy-binding",
     "properties": {
       "attribute_value_fqns": [
         "https://patreon.arkavo.com/attr/tier/value/supporter"
@@ -1253,15 +1253,15 @@ v1 MUST NOT send this from `cbor_protocol.rs`.
 
 ### Discovery document
 
-`GET https://kas.arkavo.net/.well-known/authzen-configuration`
+`GET https://platform.arkavo.net/.well-known/authzen-configuration`
 
 `policy_decision_point` MUST equal the identifier into which `/.well-known/authzen-configuration` was inserted (AuthZEN §9.2.3). v1 example:
 
 ```json
 {
-  "policy_decision_point": "https://kas.arkavo.net",
-  "access_evaluation_endpoint": "https://kas.arkavo.net/access/v1/evaluation",
-  "access_evaluations_endpoint": "https://kas.arkavo.net/access/v1/evaluations"
+  "policy_decision_point": "https://platform.arkavo.net",
+  "access_evaluation_endpoint": "https://platform.arkavo.net/access/v1/evaluation",
+  "access_evaluations_endpoint": "https://platform.arkavo.net/access/v1/evaluations"
 }
 ```
 
@@ -1274,7 +1274,7 @@ Operator config (`arks`):
 | Variable | Default | Purpose |
 |---|---|---|
 | `AUTHZEN_FACADE` | `off` | `off` or `on` only. `on` serves AuthZEN routes + well-known. Independent of `AUTHZ_PROXY`. |
-| `OPENTDF_PLATFORM_URL` | — | **Required** when `AUTHZEN_FACADE=on`. May be loopback (`http://127.0.0.1:8443`) for a co-located platform sidecar. |
+| `OPENTDF_PLATFORM_URL` | — | **Required** when `AUTHZEN_FACADE=on`. May be loopback for a co-located platform sidecar. Production host: `http://127.0.0.1:8181` (the platform HTTP port). `:8443` on that box is a Docker listener, not the sidecar. |
 | `AUTHZEN_PEP_CLIENT_IDS` | unset | Optional allowlist → HTTP 403 for other service accounts |
 | `OIDC_ISSUER` / cose-keys URL | identity.arkavo.net | Service CWT verification |
 | `AUTHZ_PROXY` | `off` | Existing v2 relay; keep for rollback and platform KAS |
