@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/events.schema.json",
+  "title": "Events",
+  "description": "Event objects (as carried in StepResult.Events) and the notifications/event broadcast used in shared sessions (spec section 10.3)",
+  "type": "object",
+  "$defs": {
+    "Event": {
+      "$ref": "game-rl.schema.json#/$defs/Event",
+      "description": "Notable simulation event ({Type, Tick, Severity, Details}); the canonical definition lives in game-rl.schema.json"
+    },
+    "notification": {
+      "type": "object",
+      "description": "JSON-RPC notifications/event broadcast sent to agents in a shared session",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "description": "JSON-RPC version"
+        },
+        "method": {
+          "const": "notifications/event",
+          "description": "Notification method name (MCP protocol layer, camelCase per REQ-NAME-04)"
+        },
+        "params": {
+          "$ref": "#/$defs/event_params",
+          "description": "Broadcast event payload"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "event_params": {
+      "type": "object",
+      "description": "Broadcast event payload (PascalCase fields per REQ-NAME-02)",
+      "properties": {
+        "EventType": {
+          "type": "string",
+          "description": "Event type identifier (e.g. 'RaidArrived', 'AgentConnected')"
+        },
+        "Tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Simulation tick when the event occurred"
+        },
+        "Details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Event-specific details (PascalCase keys)"
+        },
+        "Visibility": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agent types or agent IDs that should receive this event; omitted = visible to all connected agents"
+        }
+      },
+      "required": ["EventType", "Tick", "Details"]
+    }
+  }
+}

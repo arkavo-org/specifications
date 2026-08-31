@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/manifest.schema.json",
+  "title": "Environment Manifest",
+  "description": "Result of the `manifest` tool (spec section 5.1) describing environment capabilities. New in draft-02: the manifest MUST be reachable as a tool; the game://manifest resource is optional.",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "type": "string",
+      "description": "Human-readable game name (e.g. 'RimWorld')"
+    },
+    "Version": {
+      "type": "string",
+      "description": "Game version string (e.g. '1.5'); format is game-defined"
+    },
+    "GameRlVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Game-RL Protocol version implemented (e.g. '2.0.0-draft02')"
+    },
+    "Capabilities": {
+      "$ref": "#/$defs/Capabilities",
+      "description": "Feature flags and limits declared by the environment"
+    },
+    "DefaultObservationSpace": {
+      "type": "object",
+      "description": "Base observation space description all agents receive unless overridden at registration"
+    },
+    "DefaultActionSpace": {
+      "type": "object",
+      "description": "Fallback action space description (e.g. {\"Type\": \"DiscreteParameterized\", \"Actions\": [...]})"
+    },
+    "RewardComponents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RewardComponent"
+      },
+      "description": "Declared reward components available for shaping (spec section 8.1)"
+    },
+    "StreamProfiles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/StreamProfile"
+      },
+      "description": "Named vision stream configurations, keyed by profile name (e.g. 'policy_fast')"
+    },
+    "Scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Scenario"
+      },
+      "description": "Named scenarios available to `reset` (environments MUST list available scenarios here)"
+    },
+    "TickRate": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Simulation ticks per second at normal speed"
+    },
+    "MaxEpisodeTicks": {
+      "type": ["integer", "null"],
+      "description": "Maximum ticks before episode truncation; null = unbounded"
+    },
+    "Compliance": {
+      "$ref": "#/$defs/Compliance",
+      "description": "Conformance declaration (spec section 14.3)"
+    }
+  },
+  "required": ["Name", "Version", "GameRlVersion", "Capabilities"],
+  "$defs": {
+    "Capabilities": {
+      "type": "object",
+      "description": "Environment feature flags and limits",
+      "properties": {
+        "MultiAgent": {
+          "type": "boolean",
+          "description": "Supports multiple simultaneous agents"
+        },
+        "MaxAgents": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum concurrent agents"
+        },
+        "AgentTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/AgentType"
+          },
+          "description": "Supported agent types"
+        },
+        "ClockModes": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/ClockMode"
+          },
+          "description": "Supported clock modes"
+        },
+        "SessionTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/SessionType"
+          },
+          "description": "Supported session topologies"
+        },
+        "Deterministic": {
+          "type": "boolean",
+          "description": "Supports deterministic replay (seeded reset + state hashing)"
+        },
+        "SaveReplay": {
+          "type": "boolean",
+          "description": "Supports trajectory save/load"
+        },
+        "DomainRandomization": {
+          "type": "boolean",
+          "description": "Supports domain randomization at reset"
+        },
+        "Headless": {
+          "type": "boolean",
+          "description": "Can run without a display"
+        },
+        "VariableTimestep": {
+          "type": "boolean",
+          "description": "Supports variable tick counts per step"
+        },
+        "SpatialIntent": {
+          "type": "boolean",
+          "description": "Declares Spatial Intents support; triggers spec section 7 requirements including the Landmarks observation contract (REQ-SPA-04)"
+        }
+      },
+      "required": ["MultiAgent", "MaxAgents", "AgentTypes"]
+    },
+    "RewardComponent": {
+      "type": "object",
+      "description": "Declaration of one decomposed reward component",
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Component name as it appears in RewardComponents maps (e.g. 'survival')"
+        },
+        "Description": {
+          "type": "string",
+          "description": "Human-readable description of what the component measures"
+        },
+        "Range": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Inclusive [min, max] per-step value range"
+        }
+      },
+      "required": ["Name"]
+    },
+    "StreamProfile": {
+      "type": "object",
+      "description": "Named vision stream configuration",
+      "properties": {
+        "Streams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StreamConfig"
+          },
+          "description": "Streams provided by this profile"
+        }
+      },
+      "required": ["Streams"]
+    },
+    "StreamConfig": {
+      "type": "object",
+      "description": "Configuration of a single stream within a profile",
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Stream name (e.g. 'rgb')"
+        },
+        "Width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Frame width in pixels"
+        },
+        "Height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Frame height in pixels"
+        }
+      },
+      "required": ["Name", "Width", "Height"]
+    },
+    "Scenario": {
+      "type": "object",
+      "description": "Named scenario available to `reset`",
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Scenario name passed to reset (may be a parameterized form like 'new:Crashlanded:BorealForest:Randy:Strive:250')"
+        },
+        "Description": {
+          "type": "string",
+          "description": "Human-readable description of the scenario"
+        }
+      },
+      "required": ["Name"]
+    },
+    "Compliance": {
+      "type": "object",
+      "description": "Conformance declaration (spec section 14.3)",
+      "properties": {
+        "Level": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "description": "Conformance level: 1 = Minimal, 2 = Standard, 3 = Full"
+        },
+        "Version": {
+          "type": "string",
+          "description": "Protocol version tested against (e.g. '2.0.0-draft02')"
+        },
+        "TestResultsUrl": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "URL to conformance suite results; null if not published"
+        }
+      },
+      "required": ["Level", "Version"]
+    }
+  }
+}

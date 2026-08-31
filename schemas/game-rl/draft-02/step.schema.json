@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/step.schema.json",
+  "title": "Step",
+  "description": "Request and response (StepResult) for the `step` tool (spec section 5.2): execute an action, advance simulation time, return observation + reward. Step responses SHOULD be compact (alerts, feedback, deltas); full state belongs to `observe`.",
+  "type": "object",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "Arguments for `step`",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Registered agent ID; MAY be omitted in single-agent sessions (the step is attributed to the sole registered agent)"
+        },
+        "Action": {
+          "description": "Action to execute",
+          "oneOf": [
+            {
+              "type": "integer",
+              "description": "Discrete action index"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "Continuous action vector"
+            },
+            {
+              "type": "string",
+              "const": "Wait",
+              "description": "No-op"
+            },
+            {
+              "$ref": "#/$defs/parameterized_action"
+            }
+          ]
+        },
+        "Ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1,
+          "description": "Simulation ticks to advance. 0 = apply action without advancing time."
+        }
+      },
+      "required": [
+        "Action"
+      ]
+    },
+    "parameterized_action": {
+      "type": "object",
+      "description": "Parameterized action: PascalCase Type plus flattened parameters beside it (no nested params object \u2014 a change from draft-00). Example: {\"Type\": \"PlaceBuildingNear\", \"Building\": \"Bed\", \"Near\": \"Stockpile\", \"Count\": 3}",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "description": "Action type name (PascalCase, REQ-NAME-03)"
+        }
+      },
+      "required": [
+        "Type"
+      ],
+      "additionalProperties": true
+    },
+    "response": {
+      "type": "object",
+      "description": "StepResult returned by `step` (and by `reset` as the initial observation) Default elision (spec \u00a75.2): servers MAY omit Reward (0), Done (false), Truncated (false), and empty RewardComponents/Events/FrameIds; absence means the default value.",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Agent the result belongs to"
+        },
+        "StepId": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monotonic step counter"
+        },
+        "Tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Current simulation tick after the step"
+        },
+        "Observation": {
+          "type": "object",
+          "description": "Agent-scoped observation; sections per the Observation Contract (spec section 6)"
+        },
+        "Reward": {
+          "type": "number",
+          "description": "Scalar reward for the causal action; MUST be delivered synchronously in this response (REQ-RWD-01)"
+        },
+        "RewardComponents": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Decomposition of Reward, keyed by component name declared in the manifest"
+        },
+        "Done": {
+          "type": "boolean",
+          "description": "Episode reached a terminal state; further `step` calls error -32002 until `reset`"
+        },
+        "Truncated": {
+          "type": "boolean",
+          "description": "Episode cut by a time limit rather than a terminal state"
+        },
+        "TerminationReason": {
+          "enum": [
+            "success",
+            "failure",
+            "timeout",
+            "external",
+            null
+          ],
+          "description": "Why the episode ended (when Done or Truncated is true); null while the episode is running"
+        },
+        "Events": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/Event"
+          },
+          "description": "Notable events that occurred during this step"
+        },
+        "Error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Non-null when the action failed (REQ-ERR-01: loud errors); MUST identify the failing action and an actionable reason (REQ-ERR-02)"
+        },
+        "Feedback": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Human/LLM-readable account of what the action did; the primary in-context learning signal for LLM agents"
+        },
+        "FrameIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Vision stream frame references, keyed by StreamId (spec section 11)"
+        },
+        "StateHash": {
+          "$ref": "game-rl.schema.json#/$defs/StateHash",
+          "description": "Hash of the post-step state for determinism verification"
+        }
+      },
+      "required": [
+        "Observation"
+      ]
+    }
+  }
+}

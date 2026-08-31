@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/register-agent.schema.json",
+  "title": "Register Agent",
+  "description": "Request and response (AgentManifest) for the `registerAgent` tool (spec section 4.3). Registration with the same AgentId MUST be idempotent.",
+  "type": "object",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "Arguments for `registerAgent`; MUST be called before `step`",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Unique agent identifier (pattern ^[a-zA-Z0-9_:-]+$)"
+        },
+        "AgentType": {
+          "$ref": "game-rl.schema.json#/$defs/AgentType",
+          "description": "Agent role; determines default scope and permitted action types"
+        },
+        "Config": {
+          "$ref": "#/$defs/config",
+          "description": "Optional registration configuration; all fields optional except AvatarId, which is required when Scope is 'embodied' or when AgentType defaults to embodied (Player, Entity) and Scope is not 'systemic'"
+        }
+      },
+      "required": ["AgentId", "AgentType"],
+      "allOf": [
+        {
+          "$comment": "Embodied-default AgentTypes (Player, Entity) require Config.AvatarId unless Scope is explicitly overridden to 'systemic' (spec §4.1 default-scope mapping).",
+          "if": {
+            "properties": {
+              "AgentType": { "enum": ["Player", "Entity"] },
+              "Config": { "not": { "properties": { "Scope": { "const": "systemic" } }, "required": ["Scope"] } }
+            },
+            "required": ["AgentType"]
+          },
+          "then": {
+            "required": ["Config"],
+            "properties": { "Config": { "required": ["AvatarId"] } }
+          }
+        }
+      ]
+    },
+    "config": {
+      "type": "object",
+      "description": "Agent registration configuration",
+      "properties": {
+        "Scope": {
+          "$ref": "game-rl.schema.json#/$defs/Scope",
+          "description": "Agency scope; defaults to the AgentType's default scope (spec section 4.1)"
+        },
+        "ClockMode": {
+          "$ref": "game-rl.schema.json#/$defs/ClockMode",
+          "description": "Requested clock mode; if ANY agent requests 'training', the environment uses lockstep simulation (spec section 2.4)"
+        },
+        "SessionType": {
+          "$ref": "game-rl.schema.json#/$defs/SessionType",
+          "description": "Requested session topology"
+        },
+        "AvatarId": {
+          "type": "string",
+          "description": "Entity ID for the agent's avatar; REQUIRED when Scope is 'embodied'"
+        },
+        "SpawnPoint": {
+          "type": "string",
+          "description": "Named spawn location for embodied agents (e.g. 'tavern_entrance')"
+        },
+        "ObservationProfile": {
+          "type": "string",
+          "description": "Named observation profile from the manifest (e.g. 'compact')"
+        },
+        "ActionMask": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed action type names; actions outside this set produce error -32001"
+        },
+        "RewardShaping": {
+          "type": "object",
+          "description": "Per-agent reward shaping (spec section 8.1)",
+          "properties": {
+            "Components": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Reward component names (from manifest RewardComponents) to include in this agent's reward"
+            },
+            "Weights": {
+              "type": "object",
+              "additionalProperties": { "type": "number" },
+              "description": "Per-component weight multipliers, keyed by component name"
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "Scope": { "const": "embodied" }
+        },
+        "required": ["Scope"]
+      },
+      "then": {
+        "required": ["AvatarId"]
+      }
+    },
+    "response": {
+      "type": "object",
+      "description": "AgentManifest returned by `registerAgent`",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "The registered agent's identifier"
+        },
+        "Registered": {
+          "type": "boolean",
+          "description": "True when registration succeeded"
+        },
+        "Scope": {
+          "$ref": "game-rl.schema.json#/$defs/Scope",
+          "description": "Effective agency scope assigned to the agent"
+        },
+        "ObservationSpace": {
+          "$ref": "#/$defs/observation_space",
+          "description": "Observation space granted to this agent"
+        },
+        "ActionSpace": {
+          "$ref": "#/$defs/action_space",
+          "description": "Action space granted to this agent"
+        }
+      },
+      "required": ["AgentId", "Registered"]
+    },
+    "observation_space": {
+      "type": "object",
+      "description": "Observation space description",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "description": "Observation space kind (e.g. 'structured')"
+        },
+        "Sections": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Named observation sections available via `observe(Include=[...])` (spec section 6.1)"
+        }
+      },
+      "required": ["Type"]
+    },
+    "action_space": {
+      "type": "object",
+      "description": "Action space description",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "description": "Action space kind (e.g. 'DiscreteParameterized')"
+        },
+        "Actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One available action with parameter hints",
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "Action type name (PascalCase)"
+              },
+              "Params": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Parameter hints: parameter name to type-hint string (e.g. 'integer(0-4)', 'anchor', 'string?')"
+              }
+            },
+            "required": ["Name"]
+          },
+          "description": "Available parameterized actions"
+        }
+      },
+      "required": ["Type"]
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/observe.schema.json",
+  "title": "Observe",
+  "description": "Request for the `observe` tool (spec section 5.3): read state without advancing time. The response reuses the StepResult Observation shape (step.schema.json#/$defs/response/properties/Observation) with environment-defined sections, including ValidActions (REQ-OBS-01), Alerts (REQ-OBS-02), and Landmarks (REQ-OBS-03, see spatial.schema.json#/$defs/Landmark). `observe` MUST NOT advance simulation time or mutate state.",
+  "type": "object",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "Arguments for `observe`. With no Include, returns a compact overview.",
+      "properties": {
+        "AgentId": {
+          "$ref": "game-rl.schema.json#/$defs/AgentId",
+          "description": "Registered agent ID; MAY be omitted in single-agent sessions"
+        },
+        "Include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sections to include; dot notation addresses sub-sections (e.g. \"entities.buildings\"). Conventional names: colonists, resources, entities, terrain, rooms, research, zones, threats, factions, prisoners, traders, power, beds, alerts, actions, map, landmarks"
+        },
+        "Limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max items per list-valued section. Environments MUST NOT impose hidden caps that cannot be raised by Limit."
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "description": "Observation payload with environment-defined named sections (spec section 6.1). Properties below are the standardized contract sections; all other sections are environment-defined.",
+      "properties": {
+        "ValidActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/valid_action"
+          },
+          "description": "Action types currently executable, with parameter hints (REQ-OBS-01). Context-dependent actions MUST appear only when valid."
+        },
+        "Alerts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/alert"
+          },
+          "description": "Severity-ranked, human-readable conditions needing attention (REQ-OBS-02)"
+        },
+        "Landmarks": {
+          "type": "array",
+          "items": {
+            "$ref": "spatial.schema.json#/$defs/Landmark"
+          },
+          "description": "Stable spatial references usable as anchors (REQ-SPA-04); required when the manifest declares SpatialIntent: true. Ordered by relevance; count governed only by Limit."
+        }
+      },
+      "additionalProperties": true
+    },
+    "valid_action": {
+      "type": "object",
+      "description": "One currently-executable action with parameter hints",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "description": "Action type name (PascalCase)"
+        },
+        "Params": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Parameter hints: parameter name to a type-hint string (e.g. 'anchor') or an array of currently-valid values (e.g. [\"Lizzie\", \"Fox\"])"
+        }
+      },
+      "required": ["Type"]
+    },
+    "alert": {
+      "type": "object",
+      "description": "One severity-ranked condition needing attention",
+      "properties": {
+        "Severity": {
+          "$ref": "game-rl.schema.json#/$defs/Severity",
+          "description": "Alert severity: 0 = info, 1 = low, 2 = warning, 3 = critical"
+        },
+        "Label": {
+          "type": "string",
+          "description": "Short human-readable condition label (e.g. 'Colonist starving')"
+        },
+        "Subject": {
+          "type": "string",
+          "description": "Entity the alert concerns (e.g. a colonist name)"
+        },
+        "Detail": {
+          "type": "string",
+          "description": "Additional human-readable detail (e.g. '2.1 days remaining')"
+        }
+      },
+      "required": ["Severity", "Label"]
+    }
+  }
+}

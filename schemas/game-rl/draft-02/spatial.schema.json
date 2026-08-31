@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/spatial.schema.json",
+  "title": "Spatial Intents",
+  "description": "Spatial Intents v2 (spec section 7): landmarks, the standard intent catalog, ResolvedPlacement audit records, the -32005 error data, and the `resolveSpatial` dry-run request. Anchors are defined in game-rl.schema.json#/$defs/Anchor.",
+  "type": "object",
+  "$defs": {
+    "Landmark": {
+      "type": "object",
+      "description": "Named, stable spatial reference exposed in observations for use as an anchor (REQ-SPA-04). Minimum set: ColonyCenter (or AgentCenter), MapCenter, and the eight compass-region centroids Region_N ... Region_NW.",
+      "properties": {
+        "Id": {
+          "type": "string",
+          "description": "Stable landmark identifier (e.g. 'ColonyCenter', 'Region_NE', 'FertileCluster_0')"
+        },
+        "Kind": {
+          "type": "string",
+          "enum": ["Centroid", "Region", "Cluster", "Feature", "Zone", "Building"],
+          "description": "Landmark category: Centroid (computed center), Region (compass region), Cluster (resource/terrain cluster), Feature (map feature), Zone (named zone), Building (named building)"
+        },
+        "Position": {
+          "$ref": "game-rl.schema.json#/$defs/Position",
+          "description": "Landmark position (centroid for regions, zones, and clusters)"
+        },
+        "Label": {
+          "type": "string",
+          "description": "Human-readable label, when distinct from Id"
+        },
+        "CellCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of cells in the landmark (clusters and regions)"
+        },
+        "Fertility": {
+          "type": "number",
+          "description": "Mean soil fertility of the landmark's cells (fertile-terrain clusters)"
+        }
+      },
+      "required": ["Id", "Kind", "Position"]
+    },
+    "PlaceBuildingNear": {
+      "type": "object",
+      "description": "Spatial intent: place one or more buildings near an anchor",
+      "properties": {
+        "Type": {
+          "const": "PlaceBuildingNear",
+          "description": "Intent type discriminator"
+        },
+        "Building": {
+          "type": "string",
+          "description": "Building definition name (PascalCase, e.g. 'Bed', 'SimpleResearchBench')"
+        },
+        "Near": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "Anchor to place near (any anchor grammar form, REQ-SPA-01)"
+        },
+        "Count": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Number of buildings to place"
+        },
+        "Stuff": {
+          "type": "string",
+          "description": "Construction material (e.g. 'WoodLog', 'Steel', 'BlocksSandstone')"
+        },
+        "AllowFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the environment MAY relocate when the anchor is infeasible and MUST then set FallbackApplied: true; if false (default), infeasible placement fails with error -32005 (REQ-SPA-02)"
+        }
+      },
+      "required": ["Type", "Building", "Near"]
+    },
+    "EstablishFarm": {
+      "type": "object",
+      "description": "Spatial intent: create a growing zone near an anchor",
+      "properties": {
+        "Type": {
+          "const": "EstablishFarm",
+          "description": "Intent type discriminator"
+        },
+        "Near": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "Anchor to place the farm near (any anchor grammar form, REQ-SPA-01)"
+        },
+        "Crop": {
+          "type": "string",
+          "description": "Crop to plant (e.g. 'Rice', 'Potatoes'); environment default when omitted"
+        },
+        "Size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Approximate zone size in cells"
+        },
+        "AllowFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the environment MAY relocate when the anchor is infeasible and MUST then set FallbackApplied: true; if false (default), infeasible placement fails with error -32005 (REQ-SPA-02)"
+        }
+      },
+      "required": ["Type", "Near"]
+    },
+    "EstablishStorage": {
+      "type": "object",
+      "description": "Spatial intent: create a storage/stockpile zone near an anchor",
+      "properties": {
+        "Type": {
+          "const": "EstablishStorage",
+          "description": "Intent type discriminator"
+        },
+        "Near": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "Anchor to place the storage near (any anchor grammar form, REQ-SPA-01)"
+        },
+        "Size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Approximate zone size in cells"
+        },
+        "AllowFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the environment MAY relocate when the anchor is infeasible and MUST then set FallbackApplied: true; if false (default), infeasible placement fails with error -32005 (REQ-SPA-02)"
+        }
+      },
+      "required": ["Type", "Near"]
+    },
+    "DesignateMiningNear": {
+      "type": "object",
+      "description": "Spatial intent: designate mineable cells near an anchor",
+      "properties": {
+        "Type": {
+          "const": "DesignateMiningNear",
+          "description": "Intent type discriminator"
+        },
+        "Near": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "Anchor to mine near (any anchor grammar form, REQ-SPA-01)"
+        },
+        "Count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of cells to designate"
+        },
+        "AllowFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the environment MAY relocate when the anchor is infeasible and MUST then set FallbackApplied: true; if false (default), infeasible placement fails with error -32005 (REQ-SPA-02)"
+        }
+      },
+      "required": ["Type", "Near"]
+    },
+    "DesignateClearNear": {
+      "type": "object",
+      "description": "Spatial intent: designate vegetation/debris clearing near an anchor",
+      "properties": {
+        "Type": {
+          "const": "DesignateClearNear",
+          "description": "Intent type discriminator"
+        },
+        "Near": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "Anchor to clear around (any anchor grammar form, REQ-SPA-01)"
+        },
+        "Radius": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Clearing radius in cells"
+        },
+        "AllowFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the environment MAY relocate when the anchor is infeasible and MUST then set FallbackApplied: true; if false (default), infeasible placement fails with error -32005 (REQ-SPA-02)"
+        }
+      },
+      "required": ["Type", "Near"]
+    },
+    "SpatialIntent": {
+      "description": "Any standard-catalog spatial intent (spec section 7.7). Games SHOULD reuse these names for analogous semantics so cross-game policies transfer.",
+      "oneOf": [
+        { "$ref": "#/$defs/PlaceBuildingNear" },
+        { "$ref": "#/$defs/EstablishFarm" },
+        { "$ref": "#/$defs/EstablishStorage" },
+        { "$ref": "#/$defs/DesignateMiningNear" },
+        { "$ref": "#/$defs/DesignateClearNear" }
+      ]
+    },
+    "ResolvedPlacement": {
+      "type": "object",
+      "description": "Audit record returned for every successful spatial intent (REQ-SPA-06), inline in the step result or as the Feedback/structured payload",
+      "properties": {
+        "Description": {
+          "type": "string",
+          "description": "Human-readable account of the resolution (e.g. 'Placed 3 Beds near Stockpile_4821 at (42,13), (44,13), (46,13)')"
+        },
+        "Count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of placements performed"
+        },
+        "AnchorRequested": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "The anchor exactly as the agent requested it"
+        },
+        "AnchorResolved": {
+          "type": "string",
+          "description": "The concrete anchor instance the intent resolved to (e.g. 'Stockpile_4821'); MUST correspond to AnchorRequested unless FallbackApplied is true (REQ-SPA-02)"
+        },
+        "AnchorPosition": {
+          "$ref": "game-rl.schema.json#/$defs/Position",
+          "description": "Position of the resolved anchor"
+        },
+        "Positions": {
+          "type": "array",
+          "items": {
+            "$ref": "game-rl.schema.json#/$defs/Position"
+          },
+          "description": "Final positions of all placements"
+        },
+        "FallbackApplied": {
+          "type": "boolean",
+          "description": "True when the environment relocated away from the requested anchor (only permitted with AllowFallback: true)"
+        },
+        "MeanDistanceToAnchor": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mean distance in cells from the placements to the resolved anchor"
+        }
+      },
+      "required": ["Description", "Count", "AnchorRequested", "AnchorResolved", "FallbackApplied"]
+    },
+    "SpatialError": {
+      "type": "object",
+      "description": "The `data` payload of JSON-RPC error -32005 (Spatial resolution failed, spec section 7.5). When any feasible placement exists, Alternatives MUST list at least one feasible anchor (REQ-SPA-02).",
+      "properties": {
+        "AnchorRequested": {
+          "$ref": "game-rl.schema.json#/$defs/Anchor",
+          "description": "The anchor exactly as the agent requested it"
+        },
+        "Alternatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/alternative"
+          },
+          "description": "Feasible alternative anchors the agent could request instead"
+        }
+      },
+      "required": ["AnchorRequested"]
+    },
+    "alternative": {
+      "type": "object",
+      "description": "One feasible alternative anchor",
+      "properties": {
+        "Anchor": {
+          "type": "string",
+          "description": "Anchor identifier the agent could request (e.g. 'FertileCluster_0')"
+        },
+        "Position": {
+          "$ref": "game-rl.schema.json#/$defs/Position",
+          "description": "Position of the alternative anchor"
+        },
+        "Reason": {
+          "type": "string",
+          "description": "Why this alternative is feasible (e.g. '190 fertile cells, fertility 1.4')"
+        }
+      },
+      "required": ["Anchor"]
+    },
+    "request": {
+      "type": "object",
+      "description": "Arguments for `resolveSpatial` (REQ-SPA-05): read-only dry run returning the ResolvedPlacement that would result (or the -32005 error), without mutating state",
+      "properties": {
+        "Intent": {
+          "$ref": "#/$defs/SpatialIntent",
+          "description": "The spatial intent to resolve, identical in shape to the corresponding `step` action"
+        }
+      },
+      "required": ["Intent"]
+    }
+  }
+}

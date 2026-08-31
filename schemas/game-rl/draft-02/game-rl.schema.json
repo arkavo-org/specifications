@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arkavo.org/schemas/game-rl/draft-02/game-rl.schema.json",
+  "title": "Game-RL Protocol Core Definitions",
+  "description": "Shared JSON Schema definitions for the Game-RL Protocol 2.0.0-draft02. Payload field names are PascalCase per spec section 1.5 (REQ-NAME-02).",
+  "version": "2.0.0-draft02",
+  "$defs": {
+    "AgentId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_:-]+$",
+      "description": "Unique identifier for an agent (e.g., 'player1', 'rl_policy:walker_1')"
+    },
+    "AgentType": {
+      "type": "string",
+      "enum": ["Observer", "Player", "Entity", "Controller", "System", "Director"],
+      "description": "Agent role: Observer (watch only), Player (player avatar), Entity (single NPC/unit), Controller (strategic control of many entities), System (environmental systems), Director (narrative/combat direction)"
+    },
+    "Scope": {
+      "type": "string",
+      "enum": ["embodied", "systemic"],
+      "description": "Agency scope: embodied (diegetic, has an Avatar with physics body and sensor-local observation) or systemic (non-diegetic, global observation and administrative actions)"
+    },
+    "ClockMode": {
+      "type": "string",
+      "enum": ["training", "live"],
+      "description": "Clock ownership: training (agent-owned, lockstep, deterministic) or live (engine-owned, real-time)"
+    },
+    "SessionType": {
+      "type": "string",
+      "enum": ["exclusive", "shared"],
+      "description": "Session topology: exclusive (one connection owns the game process) or shared (game accepts multiple IPC connections and outlives agents)"
+    },
+    "Position": {
+      "type": "object",
+      "description": "2D integer cell coordinate in the game's map grid",
+      "properties": {
+        "X": {
+          "type": "integer",
+          "description": "Horizontal cell coordinate"
+        },
+        "Y": {
+          "type": "integer",
+          "description": "Vertical cell coordinate"
+        }
+      },
+      "required": ["X", "Y"]
+    },
+    "StateHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 state hash prefixed with algorithm identifier; stable for identical states (REQ-DET-02)"
+    },
+    "Severity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "Severity rank: 0 = info, 1 = low, 2 = warning, 3 = critical"
+    },
+    "Anchor": {
+      "description": "Spatial anchor (spec section 7.2, REQ-SPA-01): an entity ID, zone label, type name, or landmark ID string; an offset object displacing a resolved anchor; or literal coordinates as an escape hatch",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Entity ID (e.g. 'Stockpile_4821'), zone label ('Kitchen stockpile'), type name ('CookStove', resolved to the nearest instance to the agent's Reference Point), or landmark ID ('Region_NE', 'FertileCluster_0', 'ColonyCenter', 'MapCenter')"
+        },
+        {
+          "type": "object",
+          "description": "Offset anchor: the resolved Anchor displaced Distance cells toward Direction (8-wind compass)",
+          "properties": {
+            "Anchor": {
+              "type": "string",
+              "description": "Base anchor to displace from (any string anchor form)"
+            },
+            "Direction": {
+              "type": "string",
+              "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+              "description": "Compass direction of displacement (8-wind)"
+            },
+            "Distance": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Displacement distance in cells"
+            }
+          },
+          "required": ["Anchor", "Direction", "Distance"]
+        },
+        {
+          "$ref": "#/$defs/Position",
+          "description": "Coordinate escape hatch: a literal map position"
+        }
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "description": "Notable simulation event surfaced in step results (spec section 5.2)",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "description": "Event type identifier (e.g. 'RaidArrived')"
+        },
+        "Tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Simulation tick when the event occurred"
+        },
+        "Severity": {
+          "$ref": "#/$defs/Severity",
+          "description": "Event severity (0 = info ... 3 = critical)"
+        },
+        "Details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Event-specific details (PascalCase keys)"
+        }
+      },
+      "required": ["Type", "Tick"]
+    }
+  }
+}
