@@ -103,6 +103,24 @@ TDF-CBOR defines a compact CBOR-based serialization for the Trusted Data Format,
 
 ---
 
+### tdf-fairplay/
+
+**TDF FairPlay Package Profile (`fmp4-cbcs-fps`, version 1)**
+
+The package Arkavo Creator writes and the Arkavo viewer plays with FairPlay Streaming: a stored ZIP32 of an OpenTDF manifest, one HLS VOD media playlist keyed `skd://<policy uuid>`, and `cbcs` fMP4 media. The bound TDF policy carries the creator's content classification. Consolidates arkavo-ios ADR-0045/0046/0047/0049 and Creator CRE-250/251, and records where each implementation stands.
+
+- **Container**: exact stored ZIP32, with a fixed entry set and no extras
+- **Policy**: lowercase `uuid` (the asset and key id), non-empty `dataAttributes`, `arkavo:classification` inside the HS256-bound policy
+- **Media**: H.264 `cbcs` 1:9 video, plus encrypted AAC-LC audio when the source has sound
+- **License**: `/media/v1` certificate, session and key-request at `platform.arkavo.net`, with the exact `manifest.json` bytes as `tdfManifest`
+- **FairPlay by structure only**: unbound `meta` and `encryptedMetadata` never decide the profile, identity or rating
+
+**Latest Draft**: [draft-arkavo-tdf-fairplay-00](tdf-fairplay/draft-arkavo-tdf-fairplay-00.md)
+
+**Implementations**: [Creator](https://github.com/arkavo-org/Creator) (writer), [arkavo-ios](https://github.com/arkavo-org/arkavo-ios) (reader), [arkavo-rs](https://github.com/arkavo-org/arkavo-rs) (media service)
+
+---
+
 ### gguf-tdf/
 
 **OpenTDF GGUF Profile (`gguf-tdf/1`)**
