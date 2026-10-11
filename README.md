@@ -105,17 +105,20 @@ TDF-CBOR defines a compact CBOR-based serialization for the Trusted Data Format,
 
 ### tdf-fairplay/
 
-**TDF FairPlay Package Profile (`fmp4-cbcs-fps`, version 1)**
+**TDF FairPlay Package Profile (`fmp4-cbcs-fps`, version 2)**
 
-The package Arkavo Creator writes and the Arkavo viewer plays with FairPlay Streaming: a stored ZIP32 of an OpenTDF manifest, one HLS VOD media playlist keyed `skd://<policy uuid>`, and `cbcs` fMP4 media. The bound TDF policy carries the creator's content classification. Consolidates arkavo-ios ADR-0045/0046/0047/0049 and Creator CRE-250/251, and records where each implementation stands.
+The package Arkavo Creator writes and the Arkavo viewer plays with FairPlay Streaming. Profile version 2 gives each media component its own content key: the video key stays a `uhd` key, sealed for the device's secure video path, and the audio gets an `audio` key that its decoder can use. A package is a stored ZIP32 of an OpenTDF manifest with one wrapped key access per component, an HLS master playlist, and, for each component, a media playlist keyed `skd://<policy uuid>/<id>`, a one-track `cbcs` fMP4 init and its segments. The bound TDF policy carries the creator's content classification and an `arkavo:components` list, whose HMAC key bindings let the media service refuse a swapped or shared key before it issues any CKC. Viewers refuse profile version 1. The draft consolidates arkavo-ios ADR-0055 and the records it refines, with Creator CRE-250 to CRE-260, carries the shared test vectors, and records where each implementation stands.
 
-- **Container**: exact stored ZIP32, with a fixed entry set and no extras
-- **Policy**: lowercase `uuid` (the asset and key id), non-empty `dataAttributes`, `arkavo:classification` inside the HS256-bound policy
-- **Media**: H.264 `cbcs` 1:9 video, plus encrypted AAC-LC audio when the source has sound
-- **License**: `/media/v1` certificate, session and key-request at `platform.arkavo.net`, with the exact `manifest.json` bytes as `tdfManifest`
+- **Container**: exact stored ZIP32: `manifest.json`, `master.m3u8`, and `<id>.m3u8`, `<id>-init.mp4` and `<id>-segment<N>.m4s` per component
+- **Components**: `video`, plus `audio` when the source has sound, each with its own 16-byte key and `keyAccess`
+- **Policy**: lowercase `uuid` (the asset id), non-empty `dataAttributes`, `arkavo:classification` and `arkavo:components` inside the HS256-bound policy
+- **Media**: H.264 `cbcs` 1:9 video; AAC-LC audio, whole-block full-sample encrypted, as a demuxed rendition aligned segment by segment
+- **License**: `/media/v1` at `platform.arkavo.net`, one license request and session per component, with `component` in the key request; video keys `uhd`, audio keys `audio`, both HDCP Type 1
 - **FairPlay by structure only**: unbound `meta` and `encryptedMetadata` never decide the profile, identity or rating
 
-**Latest Draft**: [draft-arkavo-tdf-fairplay-00](tdf-fairplay/draft-arkavo-tdf-fairplay-00.md)
+**Latest Draft**: [draft-arkavo-tdf-fairplay-01](tdf-fairplay/draft-arkavo-tdf-fairplay-01.md)
+
+**Previous**: [draft-arkavo-tdf-fairplay-00](tdf-fairplay/draft-arkavo-tdf-fairplay-00.md) (profile version 1, obsoleted)
 
 **Implementations**: [Creator](https://github.com/arkavo-org/Creator) (writer), [arkavo-ios](https://github.com/arkavo-org/arkavo-ios) (reader), [arkavo-rs](https://github.com/arkavo-org/arkavo-rs) (media service)
 

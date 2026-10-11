@@ -1,5 +1,7 @@
 # TDF FairPlay Package Profile (`fmp4-cbcs-fps`, version 1)
 
+> **Obsoleted by [draft-arkavo-tdf-fairplay-01](draft-arkavo-tdf-fairplay-01.md):** profile v1 is refused by viewers as of arkavo-ios ADR-0055. This draft is kept for history.
+
 |                  |                                                                 |
 |------------------|-----------------------------------------------------------------|
 | **Version**      | 0.1.0-draft (document `draft-00`)                               |
