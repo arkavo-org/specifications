@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/swarmkit/draft-02/delegation-protocol.schema.json",
+  "title": "SwarmKit Delegation Protocol Messages",
+  "description": "Messages around the delegation envelope (§7.3, §7.4): the ready acknowledgement and refusal of swarmkit/delegate, the swarmkit/revoke parameter and result, and the swarmkit/status result.",
+  "$defs": {
+    "Ready": {
+      "type": "object",
+      "description": "Result of swarmkit/delegate (§7.3.2)",
+      "properties": {
+        "status": {
+          "const": "ready"
+        },
+        "specialist": {
+          "$ref": "swarmkit.schema.json#/$defs/DidKey"
+        },
+        "flight_id": {
+          "$ref": "swarmkit.schema.json#/$defs/FlightId"
+        },
+        "role_id": {
+          "$ref": "swarmkit.schema.json#/$defs/RoleId"
+        },
+        "envelope_blake3": {
+          "$ref": "swarmkit.schema.json#/$defs/Base64Url",
+          "description": "BLAKE3 of the JCS form of the complete envelope as received, signing included"
+        }
+      },
+      "required": [
+        "status",
+        "specialist",
+        "flight_id",
+        "role_id",
+        "envelope_blake3"
+      ],
+      "additionalProperties": false
+    },
+    "RefusalData": {
+      "type": "object",
+      "description": "data member of the JSON-RPC error (code -32040) refusing a delegation or revocation (§7.3.3)",
+      "properties": {
+        "reason": {
+          "enum": [
+            "invalid_envelope",
+            "bad_signature",
+            "wrong_specialist",
+            "not_yet_valid",
+            "expired",
+            "replayed",
+            "not_bound_orchestrator",
+            "binding_required",
+            "host_unsuitable",
+            "skill_unverified"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "Revocation": {
+      "type": "object",
+      "description": "Parameter of swarmkit/revoke (§7.4), signed like the delegation envelope",
+      "properties": {
+        "revocation": {
+          "type": "object",
+          "properties": {
+            "orchestrator": {
+              "$ref": "swarmkit.schema.json#/$defs/DidKey"
+            },
+            "specialist": {
+              "$ref": "swarmkit.schema.json#/$defs/DidKey"
+            },
+            "issued": {
+              "$ref": "swarmkit.schema.json#/$defs/RFC3339"
+            },
+            "nonce": {
+              "$ref": "swarmkit.schema.json#/$defs/Nonce128"
+            },
+            "flight_id": {
+              "oneOf": [
+                {
+                  "$ref": "swarmkit.schema.json#/$defs/FlightId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "release_binding": {
+              "type": "boolean"
+            },
+            "signing": {
+              "type": "object",
+              "properties": {
+                "algorithm": {
+                  "const": "Ed25519"
+                },
+                "delegation_signature": {
+                  "$ref": "swarmkit.schema.json#/$defs/Base64Url"
+                }
+              },
+              "required": [
+                "algorithm",
+                "delegation_signature"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "orchestrator",
+            "specialist",
+            "issued",
+            "nonce",
+            "flight_id",
+            "release_binding",
+            "signing"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "revocation"
+      ],
+      "additionalProperties": false
+    },
+    "Revoked": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "revoked"
+        },
+        "specialist": {
+          "$ref": "swarmkit.schema.json#/$defs/DidKey"
+        }
+      },
+      "required": [
+        "status",
+        "specialist"
+      ],
+      "additionalProperties": false
+    },
+    "BindingMode": {
+      "enum": [
+        "operator",
+        "pairing",
+        "first-use"
+      ]
+    },
+    "SpecialistStatus": {
+      "type": "object",
+      "description": "Result of swarmkit/status (§7.3.4)",
+      "properties": {
+        "specialist": {
+          "$ref": "swarmkit.schema.json#/$defs/DidKey"
+        },
+        "binding": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "orchestrator": {
+                  "$ref": "swarmkit.schema.json#/$defs/DidKey"
+                },
+                "mode": {
+                  "$ref": "#/$defs/BindingMode"
+                },
+                "since": {
+                  "$ref": "swarmkit.schema.json#/$defs/RFC3339"
+                }
+              },
+              "required": [
+                "orchestrator",
+                "mode",
+                "since"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "binds_by": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BindingMode"
+          },
+          "uniqueItems": true
+        },
+        "delegation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "flight_id": {
+                  "$ref": "swarmkit.schema.json#/$defs/FlightId"
+                },
+                "kit_id": {
+                  "$ref": "swarmkit.schema.json#/$defs/KitId"
+                },
+                "role_id": {
+                  "$ref": "swarmkit.schema.json#/$defs/RoleId"
+                },
+                "expires": {
+                  "$ref": "swarmkit.schema.json#/$defs/RFC3339"
+                }
+              },
+              "required": [
+                "flight_id",
+                "kit_id",
+                "role_id",
+                "expires"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "$ref": "swarmkit.schema.json#/$defs/Capability"
+              },
+              "ready": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "ready"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "load": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "specialist",
+        "binding",
+        "binds_by",
+        "delegation",
+        "capabilities",
+        "load"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

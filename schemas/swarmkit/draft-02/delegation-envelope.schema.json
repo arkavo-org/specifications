@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arkavo-org/specifications/schemas/swarmkit/draft-02/delegation-envelope.schema.json",
+  "title": "SwarmKit Delegation Envelope",
+  "description": "Orchestrator → specialist delegation envelope per spec §7.2, sent as the envelope parameter of swarmkit/delegate. delegation_signature is Ed25519 over BLAKE3 of the JCS-canonical envelope with delegation.signing removed (§8.1.2 profile). MAY itself be TDF-wrapped if the transport is untrusted.",
+  "type": "object",
+  "properties": {
+    "delegation": {
+      "type": "object",
+      "properties": {
+        "orchestrator": {
+          "$ref": "swarmkit.schema.json#/$defs/DidKey",
+          "description": "did:key of the orchestrator's signing key"
+        },
+        "specialist": {
+          "$ref": "swarmkit.schema.json#/$defs/DidKey",
+          "description": "did:key of the recipient specialist"
+        },
+        "issued": {
+          "$ref": "swarmkit.schema.json#/$defs/RFC3339"
+        },
+        "expires": {
+          "$ref": "swarmkit.schema.json#/$defs/RFC3339",
+          "description": "Later than issued, not later than kit.expires, and at most 30 days after issued (§7.2)"
+        },
+        "nonce": {
+          "$ref": "swarmkit.schema.json#/$defs/Nonce128"
+        },
+        "flight_id": {
+          "$ref": "swarmkit.schema.json#/$defs/FlightId"
+        },
+        "kit_id": {
+          "$ref": "swarmkit.schema.json#/$defs/KitId"
+        },
+        "role_id": {
+          "$ref": "swarmkit.schema.json#/$defs/RoleId"
+        },
+        "agent_provisioning": {
+          "$ref": "agent-provisioning.schema.json"
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "swarmkit.schema.json#/$defs/Skill"
+          },
+          "description": "Full skill bodies, individually signed (§7.3). Specialist MUST verify each signature."
+        },
+        "mcp_grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/McpGrant"
+          }
+        },
+        "tdf_policy_role_scoped": {
+          "$ref": "swarmkit.schema.json#/$defs/TdfAttributeReleasePolicy"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "objective": {
+              "type": "string"
+            },
+            "role_description": {
+              "type": "string"
+            },
+            "initial_inputs": {
+              "type": "array",
+              "items": {
+                "description": "Reference to an input — typically a content hash, TDF locator, or iroh ticket"
+              }
+            },
+            "peer_roles": {
+              "type": "array",
+              "items": {
+                "$ref": "swarmkit.schema.json#/$defs/RoleId"
+              },
+              "description": "Roles this specialist may talk to over A2A"
+            }
+          },
+          "additionalProperties": false
+        },
+        "host_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "swarmkit.schema.json#/$defs/Capability"
+          },
+          "uniqueItems": true
+        },
+        "pairing_proof": {
+          "$ref": "swarmkit.schema.json#/$defs/Base64Url",
+          "description": "HMAC-SHA256 of the JCS envelope without signing and pairing_proof, keyed by the specialist's pairing secret (§7.3.1)"
+        },
+        "signing": {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "const": "Ed25519"
+            },
+            "delegation_signature": {
+              "$ref": "swarmkit.schema.json#/$defs/Base64Url",
+              "description": "Ed25519 signature by the orchestrator key over BLAKE3(JCS(envelope without delegation.signing)), base64url without padding (§7.2)"
+            }
+          },
+          "required": [
+            "algorithm",
+            "delegation_signature"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "orchestrator",
+        "specialist",
+        "issued",
+        "expires",
+        "nonce",
+        "flight_id",
+        "kit_id",
+        "role_id",
+        "agent_provisioning",
+        "signing"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "delegation"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "McpGrant": {
+      "type": "object",
+      "description": "Concrete grant issued by the orchestrator to the specialist (§7.2). bearer_token / expires are present when the manifest's auth mode is 'delegated'; absent for 'passthrough' (specialist uses own creds) or 'none' (public servers).",
+      "properties": {
+        "server": {
+          "type": "string",
+          "format": "uri"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "bearer_token": {
+          "description": "Opaque token bound to the flight ID. Specialist MUST NOT cache beyond `expires` (§8.2)"
+        },
+        "expires": {
+          "$ref": "swarmkit.schema.json#/$defs/RFC3339"
+        }
+      },
+      "required": [
+        "server",
+        "tools"
+      ],
+      "dependentRequired": {
+        "bearer_token": [
+          "expires"
+        ]
+      },
+      "additionalProperties": false
+    }
+  }
+}

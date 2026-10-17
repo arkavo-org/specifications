@@ -1,5 +1,23 @@
 # SwarmKit Specification Changelog
 
+## draft-02 (2026-10-16)
+
+Additive draft. Bumps `spec_version` from `1.1.0` to `1.2.0` (per §9.4: adding optional fields is MINOR). Schemas move to `schemas/swarmkit/draft-02/`.
+
+Changes:
+
+- §7.2 — The delegation envelope names its `orchestrator` and `specialist` (both `did:key`), and carries `issued`, `expires` and a 128-bit `nonce`. `delegation_signature` is defined: Ed25519 over the BLAKE3 digest of the JCS form, the §8.1.2 skill-signing profile. The envelope is sent as the parameter of `swarmkit/delegate`. It also carries `host_requirements`, `context.objective`, `context.role_description` and an optional `pairing_proof`. Previously the signature had no algorithm or key, and an envelope named no recipient and never expired, so a captured one could be replayed to any specialist.
+- §7.3 — Specialist acceptance is an ordered procedure that checks signature, recipient, window and nonce before the binding, skills and host policy.
+- §7.3.1 (new) — Orchestrator binding. A specialist accepts delegations from one bound orchestrator key, bound by `operator` (RECOMMENDED), `pairing` (one-time secret, HMAC proof) or `first-use` (zero configuration, trusted networks only). Previously nothing said which orchestrator a specialist should trust.
+- §7.3.2–§7.3.4 (new) — The ready acknowledgement (`envelope_blake3`), refusal reasons under JSON-RPC error `-32040`, and `swarmkit/status`.
+- §7.1.2 (new) — Enlisting a running specialist: discovery over DNS-SD `_a2a._tcp`, offers matched on host capabilities, refusal moving the role to the next candidate. Previously §7.1 assumed the orchestrator provisions every specialist.
+- §7.4 — Delegations persist across specialist restarts until `expires`. `swarmkit/revoke` is a signed revocation that can also release the binding.
+- §4.3.1 (new) — `RoleSpec.host_requirements`, with the capability `image_generation`. A specialist serves a listed capability to the swarm only while its role requires it.
+- §8.2 — Grants SHOULD carry no `bearer_token` when every MCP server is local or public; such envelopes may travel signed and unencrypted.
+- §10.1 — New threats: unauthorized delegation, delegation replay, first-use capture, discovery spoofing.
+- §11 — C-S1 strengthened; new C-O7, C-O8, C-S5, C-S6, C-S7.
+- §13 — New open questions: one key per host, capability vocabulary, binding to an owner, envelope confidentiality.
+
 ## draft-01 (2026-05-08)
 
 Additive draft. Bumps `spec_version` from `1.0.0` to `1.1.0` (per §9.4: adding optional fields is MINOR).
