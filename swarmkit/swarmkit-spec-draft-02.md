@@ -535,7 +535,7 @@ A specialist that receives `swarmkit/delegate` MUST take these steps in order an
 
 1. Bound the envelope's size, then parse it. Refuse a `signing.algorithm` other than `Ed25519`.
 2. Verify `delegation_signature` against the `orchestrator` key.
-3. Check that `specialist` is its own key, `issued` is at most 5 minutes in its future, `expires` has not passed, the window obeys §7.2, and it has not seen `nonce` from this orchestrator. It keeps each nonce until its envelope's `expires`.
+3. Check that `specialist` is its own key, `issued` is at most 5 minutes in its future, `expires` has not passed and is at most 30 days after `issued`, and it has not seen `nonce` from this orchestrator. It keeps each nonce until its envelope's `expires`. The `kit.expires` bound of §7.2 is the orchestrator's to enforce, since a specialist does not hold the manifest.
 4. Check the `orchestrator` key against its binding (§7.3.1).
 5. Verify each skill's signature independently.
 6. Refuse if any field of `agent_provisioning` violates its own host policy (e.g. `network_egress: true` on an offline host), or if it lacks a capability `host_requirements` names.
@@ -777,7 +777,7 @@ A conforming **orchestrator** MUST:
 - C-O4. Enforce `agent_provisioning` validation per §5.1 before provisioning.
 - C-O5. Issue MCP grants with explicit allowlists and expiries.
 - C-O6. Emit a lineage event on every delegation and revocation, written to whichever sequence-integrity stream the orchestrator's deployment uses.
-- C-O7. Sign every delegation envelope and revocation per §7.2, naming the `specialist` and carrying `issued`, `expires` (envelopes only) and a fresh `nonce`.
+- C-O7. Sign every delegation envelope and revocation per §7.2, naming the `specialist` and carrying `issued`, a fresh `nonce` and, for envelopes, an `expires` no later than `kit.expires`.
 - C-O8. Verify each ready acknowledgement's `envelope_blake3` (§7.3.2).
 
 A conforming **specialist** MUST:
