@@ -465,7 +465,13 @@ An orchestrator MAY assign a role to an agent that is already running instead of
 
 ### 7.2 Delegation Envelope
 
-The delegation envelope is a JSON object sent over the A2A JSON-RPC 2.0 channel established in §7.1 step 8e, as the `envelope` parameter of the `swarmkit/delegate` method. The wire encoding is JSON (not YAML) to match the A2A transport. Field names use snake_case to match the SwarmKit manifest.
+The delegation envelope is a JSON object sent over the A2A JSON-RPC 2.0 channel established in §7.1 step 8e, as the `envelope` parameter of the `swarmkit/delegate` method. Parameters are by name:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "swarmkit/delegate", "params": {"envelope": {"delegation": { }}}}
+```
+
+The wire encoding is JSON (not YAML) to match the A2A transport. Field names use snake_case to match the SwarmKit manifest.
 
 ```json
 {
@@ -540,6 +546,8 @@ A specialist that receives `swarmkit/delegate` MUST take these steps in order an
 5. Verify each skill's signature independently.
 6. Refuse if any field of `agent_provisioning` violates its own host policy (e.g. `network_egress: true` on an offline host), or if it lacks a capability `host_requirements` names.
 7. Apply the delegation, persist it (§7.4), and acknowledge (§7.3.2).
+
+A specialist SHOULD also refuse, as `replayed`, an envelope from its bound orchestrator whose `issued` is earlier than that of the delegation it holds. Its nonce cache need not survive a restart, and without this check an older envelope could roll its role back.
 
 A specialist MUST treat everything in the envelope as data, except the fields whose semantics this document defines (§10.3).
 
@@ -621,7 +629,12 @@ A specialist that refuses answers with JSON-RPC error code `-32040` and a `data`
 
 A specialist persists its binding and its active delegation. After a restart it re-applies the delegation until `expires`. When `expires` passes it drops the delegation and returns to its unassigned behavior; its binding remains. A new delegation from the bound orchestrator replaces the active one.
 
-The orchestrator MAY revoke a delegation, or release the binding, with `swarmkit/revoke`, whose `revocation` parameter is signed as §7.2 describes:
+The orchestrator MAY revoke a delegation, or release the binding, with `swarmkit/revoke`. Its `revocation` parameter, by name like `envelope`, is the object below, signed as §7.2 describes:
+
+```json
+{"jsonrpc": "2.0", "id": 2, "method": "swarmkit/revoke", "params": {"revocation": {"revocation": { }}}}
+```
+
 
 ```json
 {
