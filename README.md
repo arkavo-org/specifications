@@ -176,14 +176,15 @@ A SwarmKit is a portable, signed, TDF-encrypted package that defines coordinated
 
 - **Manifest Schema**: Objective, roles, coordination topology, evaluation rubric, completion rules
 - **TDF Encryption**: OpenTDF envelope with orchestrator-gated key release via KAS
-- **Role-Scoped Delegation**: Per-role TDF ARPs, signed skills, scoped MCP grants
+- **Role-Scoped Delegation**: Per-role TDF ARPs, signed skills, scoped MCP grants, in a signed envelope bound to one specialist
+- **Enlistment**: Roles offered to agents already running on the network, matched on host capabilities, from an orchestrator each specialist is bound to
 - **Coordination**: A2A JSON-RPC 2.0 over mesh / pipeline / hub-spoke / hierarchical topologies
 
 Wire format: `application/vnd.arkavo.swarmkit+yaml` (manifest), `.swarmkit.tdf` (distributable)
 
-**Latest Draft**: [swarmkit-spec-draft-00](swarmkit/swarmkit-spec-draft-00.md)
+**Latest Draft**: [swarmkit-spec-draft-02](swarmkit/swarmkit-spec-draft-02.md)
 
-**JSON Schemas**: [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/)
+**JSON Schemas**: [schemas/swarmkit/draft-02/](schemas/swarmkit/draft-02/)
 
 ---
 
@@ -195,7 +196,7 @@ Machine-readable schema definitions for protocol validation:
 |---------------|------------------|
 | Game-RL | [schemas/game-rl/draft-00/](schemas/game-rl/draft-00/) |
 | Agent Runtime Policy | [schemas/agent-runtime-policy/draft-00/](schemas/agent-runtime-policy/draft-00/) |
-| SwarmKit | [schemas/swarmkit/draft-00/](schemas/swarmkit/draft-00/) |
+| SwarmKit | [schemas/swarmkit/draft-02/](schemas/swarmkit/draft-02/) |
 | gguf-tdf | [schemas/gguf-tdf/draft-00/](schemas/gguf-tdf/draft-00/) |
 
 ## License
